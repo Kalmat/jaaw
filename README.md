@@ -12,6 +12,10 @@ Furthermore, you won't need any Admin privileges to install it (it's fully porta
 
 Run it, and right-click on the Jaaw! tray icon to config your preferred settings
 
+#### IMPORTANT
+
+The application and tray icons are... well, horrible. I have no graphic design capabilities at all. Download or design your own!
+
 ### PENDING
 
 * Add period selection for image carousel on settings
