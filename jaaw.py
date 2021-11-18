@@ -13,7 +13,8 @@ import signal
 
 CAPTION = "Jaaw!"
 SETTINGS_FILE = "settings.json"
-CONFIG_ICON = utils.resource_path("resources/config.png")
+CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
+SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
 
 PLAY_WARNING = 0
 SETTINGS_WARNING = 1
@@ -30,6 +31,7 @@ class Window(QtWidgets.QMainWindow):
         self.setupUi()
         self.xmax, self.ymax, self.widgets = qtutils.initDisplay(parent=self,
                                                                  setAsWallpaper=True,
+                                                                 icon=SYSTEM_ICON,
                                                                  caption=CAPTION)
         self.currentWP = bkgutils.getWallPaper()
 
