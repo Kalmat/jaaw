@@ -1,0 +1,51 @@
+{
+    "Available_modes": [
+        "IMAGE",
+        "VIDEO"
+    ],
+    "mode": "VIDEO",
+    "Available_img_modes": [
+        "FIXED",
+        "CAROUSEL"
+    ],
+    "img_mode": "FIXED",
+    "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
+    "folder": "",
+    "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
+    "Available_periods": [
+        {
+            "text": "30 sec",
+            "duration": 30
+        },
+        {
+            "text": "1 min",
+            "duration": 60
+        },
+        {
+            "text": "2 min",
+            "duration": 120
+        },
+        {
+            "text": "5 min",
+            "duration": 300
+        },
+        {
+            "text": "15 min",
+            "duration": 900
+        },
+        {
+            "text": "30 min",
+            "duration": 1800
+        },
+        {
+            "text": "1 hour",
+            "duration": 3600
+        }
+    ],
+    "img_period": 120,
+    "Comment2": "Image to show when in IMAGE mode, and FIXED",
+    "img": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/630070.jpg",
+    "Comment3": "Video to play when in VIDEO mode",
+    "video": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/Bioshock Rapture.wmv",
+    "firstRun": "False"
+}
