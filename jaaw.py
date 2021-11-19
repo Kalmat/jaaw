@@ -25,6 +25,8 @@ HELP_WARNING = 4
 
 class Window(QtWidgets.QMainWindow):
 
+    showMenu = QtCore.pyqtSignal()
+
     def __init__(self, *args, **kwargs):
         QtWidgets.QMainWindow.__init__(self, *args, **kwargs)
 
@@ -69,6 +71,7 @@ class Window(QtWidgets.QMainWindow):
         self.videoWidget.setGeometry(0, 0, screenSize.width(), screenSize.height())
         self.layout().addWidget(self.videoWidget)
         self.mediaPlayer.setVideoOutput(self.videoWidget)
+        self.mediaPlayer.error.connect(self.handlePlayError)
 
         self.msgBox = QtWidgets.QMessageBox()
 
@@ -142,9 +145,8 @@ class Window(QtWidgets.QMainWindow):
         self.playlist.setPlaybackMode(QtMultimedia.QMediaPlaylist.CurrentItemInLoop)
         self.mediaPlayer.setPlaylist(self.playlist)
         self.mediaPlayer.setVolume(0)
-        self.mediaPlayer.error.connect(self.showWarning)
-        self.mediaPlayer.play()
         self.bkg_label.hide()
+        self.mediaPlayer.play()
         self.videoWidget.show()
 
     def getImgInFolder(self, folder):
@@ -159,7 +161,10 @@ class Window(QtWidgets.QMainWindow):
     def showHelp(self):
         self.showWarning(HELP_WARNING)
 
-    def showWarning(self, msg=PLAY_WARNING):
+    def handlePlayError(self):
+        self.showWarning(PLAY_WARNING)
+
+    def showWarning(self, msg):
 
         retval = None
 
@@ -167,53 +172,47 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Press OK to select another video file\nPress Cancel to leave it blank")
-            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"+
+                                        self.mediaPlayer.errorString())
+            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             retval = self.msgBox.exec_()
-            if retval == QtWidgets.QMessageBox.Ok:
-                self.openVideo()
-            elif retval == QtWidgets.QMessageBox.Cancel:
-                self.videoWidget.clear()
-                self.videoWidget.hide()
+            # self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
+            self.bkg_label.show()
+            self.menu.openVideo()
 
         elif msg == SETTINGS_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Configure your own settings and media to use as wallpaper")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Press OK to open settings\nPress Cancel to do it later by right-clicking the Jaaw! settings icon in the bottom-right of your screen")
-            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings")
+            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             retval = self.msgBox.exec_()
-            if retval == QtWidgets.QMessageBox.Ok:
-                self.menu.showMenu()
-            elif retval == QtWidgets.QMessageBox.Cancel:
-                pass
+            self.bkg_label.show()
+            self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
+            # self.menu.openVideo()
 
         elif msg == IMG_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Press OK to open settings\nPress Cancel to show previous image")
-            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
+            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             retval = self.msgBox.exec_()
-            if retval == QtWidgets.QMessageBox.Ok:
-                self.menu.showMenu()
-            elif retval == QtWidgets.QMessageBox.Cancel:
-                self.bkg_label.clear()
-                self.bkg_label.hide()
+            # self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
+            self.bkg_label.show()
+            self.menu.openSingleImage()
 
         elif msg == FOLDER_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Press OK to select a new folder\nPress Cancel to leave it blank")
-            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
+            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            self.timer.stop()
             retval = self.msgBox.exec_()
-            if retval == QtWidgets.QMessageBox.Ok:
-                self.menu.openFolder()
-            elif retval == QtWidgets.QMessageBox.Cancel:
-                self.timer.stop()
-                self.bkg_label.clear()
-                self.bkg_label.hide()
+            #self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
+            self.bkg_label.show()
+            self.menu.openFolder()
 
         elif msg == HELP_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
@@ -226,6 +225,7 @@ class Window(QtWidgets.QMainWindow):
                                         "giving it a fully customized and totally awsome aspect!")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             retval = self.msgBox.exec_()
+            # self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
 
         return retval
 
@@ -284,8 +284,8 @@ class Config(QtWidgets.QWidget):
 
         self.contextMenu = QtWidgets.QMenu(self)
         self.contextMenu.setStyleSheet("""
-            QMenu {border: 1px inset grey; background-color: #fff; color: #000; padding: 5;}
-            QMenu:selected {background-color: #2fe; color: #000;}""")
+            QMenu {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 5; padding-left: 20}
+            QMenu:selected {background-color: #666; color: #fff;}""")
 
         self.imgAct = self.contextMenu.addMenu("Image")
         self.fimgAct = self.imgAct.addAction("Select single image", self.openSingleImage)
@@ -302,6 +302,9 @@ class Config(QtWidgets.QWidget):
         trayIcon.setContextMenu(self.contextMenu)
         trayIcon.setToolTip("Jaaw!")
         trayIcon.show()
+
+    def showMenu(self, pos=QtCore.QPoint(0, 0)):
+        self.contextMenu.exec_(self.mapToGlobal(pos))
 
     def openSingleImage(self):
 
@@ -342,7 +345,6 @@ class Config(QtWidgets.QWidget):
         self.config["firstRun"] = "False"
         with open(SETTINGS_FILE, "w", encoding='UTF-8') as file:
             json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
-            file.close()
 
         self.reloadSettings.emit()
 
