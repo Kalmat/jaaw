@@ -380,7 +380,7 @@ def resizeImageWithQT(src, width, height, keepAspect=True):
     try:
         pixmap = QtGui.QPixmap(utils.resource_path(src))
         if keepAspect:
-            pixmap_resized = pixmap.scaled(int(width), int(height), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+            pixmap_resized = pixmap.scaled(int(width), int(height), QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
         else:
             pixmap_resized = pixmap.scaled(int(width), int(height), QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.SmoothTransformation)
     except:

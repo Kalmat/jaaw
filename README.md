@@ -19,7 +19,7 @@ Quit
 
 #### IMPORTANT
 
-The application and tray icons are... well, horrible. I have no graphic design capabilities at all. Download or design your own!
+The application and tray icons are... well, horrible. I have no graphic design capabilities at all. Download or design your own! Don't forget to place them on "resources" folder and rename them accordingly
 
 ### PENDING
 

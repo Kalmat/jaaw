@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import time
+
 from os import listdir
 from os.path import isfile, join
 import json
@@ -11,7 +11,7 @@ import utils
 from PyQt5 import QtWidgets, QtCore, QtGui, QtMultimedia, QtMultimediaWidgets
 import signal
 
-CAPTION = "Jaaw!"
+CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
 SETTINGS_FILE = "settings.json"
 CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
 SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
@@ -83,6 +83,7 @@ class Window(QtWidgets.QMainWindow):
         self.contentFolder = self.config["folder"]
         self.wallPaperMode = self.config["mode"]
         self.imgMode = self.config["img_mode"]
+        self.imgPeriods = self.config["Available_periods"]
         self.imgPeriod = self.config["img_period"]
         self.img = self.config["img"]
         self.video = self.config["video"]
@@ -265,6 +266,7 @@ class Config(QtWidgets.QWidget):
         self.contentFolder = self.config["folder"]
         self.wallPaperMode = self.config["mode"]
         self.imgMode = self.config["img_mode"]
+        self.imgPeriods = self.config["Available_periods"]
         self.imgPeriod = self.config["img_period"]
         self.img = self.config["img"]
         self.video = self.config["video"]
@@ -282,8 +284,13 @@ class Config(QtWidgets.QWidget):
             QMenu:selected {background-color: #666; color: #fff;}""")
 
         self.imgAct = self.contextMenu.addMenu("Image")
-        self.fimgAct = self.imgAct.addAction("Select single image", self.openSingleImage)
-        self.cimgAct = self.imgAct.addAction("Select images folder", self.openFolder)
+        self.fimgAct = self.imgAct.addAction("Select image (single)", self.openSingleImage)
+        self.cimgAct = self.imgAct.addAction("Select folder (carousel)", self.openFolder)
+        # self.cimgAct = self.imgAct.addMenu("Select image carousel")
+        # self.imgfAct = self.cimgAct.addAction("Select folder", self.openFolder)
+        # self.pimgAct = self.cimgAct.addMenu("Select carousel interval")
+        # for interval in self.imgPeriods:
+        #     self.pimgAct.addAction(interval["text"], (lambda: self.assignPeriod(interval)))
 
         self.videoAct = self.contextMenu.addMenu("Video")
         self.fvideoAct = self.videoAct.addAction("Select video file", self.openVideo)
@@ -292,10 +299,13 @@ class Config(QtWidgets.QWidget):
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
         self.quitAct = self.contextMenu.addAction("Quit", self.sendCloseAll)
 
-        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(CONFIG_ICON), self)
+        self.trayIcon = QtWidgets.QSystemTrayIcon(utils.resource_path(QtGui.QIcon(CONFIG_ICON)), self)
         self.trayIcon.setContextMenu(self.contextMenu)
         self.trayIcon.setToolTip("Jaaw!")
         self.trayIcon.show()
+
+    def assignPeriod(self, interval):
+        self.imgPeriod = interval["duration"]
 
     def openSingleImage(self):
 

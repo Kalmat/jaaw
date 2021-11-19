@@ -3,14 +3,14 @@
         "IMAGE",
         "VIDEO"
     ],
-    "mode": "VIDEO",
+    "mode": "IMAGE",
     "Available_img_modes": [
         "FIXED",
         "CAROUSEL"
     ],
     "img_mode": "FIXED",
     "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
-    "folder": "resourcesB/jaaw.png",
+    "folder": "resources",
     "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
     "Available_periods": [
         {
@@ -44,8 +44,8 @@
     ],
     "img_period": 120,
     "Comment2": "Image to show when in IMAGE mode, and FIXED",
-    "img": "resourcesB/jaaw.png",
+    "img": "resources/jaaw.png",
     "Comment3": "Video to play when in VIDEO mode",
-    "video": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/3D Solar System Animation_ After Effects.mp4",
+    "video": "",
     "firstRun": "False"
 }
