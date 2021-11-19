@@ -3,14 +3,14 @@
         "IMAGE",
         "VIDEO"
     ],
-    "mode": "VIDEO",
+    "mode": "IMAGE",
     "Available_img_modes": [
         "FIXED",
         "CAROUSEL"
     ],
     "img_mode": "FIXED",
     "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
-    "folder": "resources",
+    "folder": "",
     "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
     "Available_periods": [
         {
@@ -47,5 +47,5 @@
     "img": "resources/jaaw.png",
     "Comment3": "Video to play when in VIDEO mode",
     "video": "",
-    "firstRun": "False"
+    "firstRun": "True"
 }

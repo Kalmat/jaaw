@@ -48,8 +48,8 @@ class Window(QtWidgets.QMainWindow):
         self.menu.showHelp.connect(self.showHelp)
         self.menu.show()
 
-        self.loadSettings()
-        self.start()
+        if self.loadSettings():
+            self.start()
 
     def setupUi(self):
 
@@ -80,6 +80,10 @@ class Window(QtWidgets.QMainWindow):
         with open(SETTINGS_FILE, encoding='UTF-8') as file:
             self.config = json.load(file)
 
+        if self.config["firstRun"] == "True":
+            self.showWarning(SETTINGS_WARNING)
+            return False
+
         self.contentFolder = self.config["folder"]
         self.wallPaperMode = self.config["mode"]
         self.imgMode = self.config["img_mode"]
@@ -93,8 +97,7 @@ class Window(QtWidgets.QMainWindow):
         self.IMGFIXED = self.config["Available_img_modes"][0]
         self.IMGCAROUSEL = self.config["Available_img_modes"][1]
 
-        if self.config["firstRun"] == "True":
-            self.showWarning(SETTINGS_WARNING)
+        return True
 
     def start(self):
 
@@ -178,9 +181,9 @@ class Window(QtWidgets.QMainWindow):
         if msg == PLAY_WARNING:
             self.loadImg(self.currentWP, keepAspect=True)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-            self.msgBox.setText("Video not supported or corrupted")
+            self.msgBox.setText("Video not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"+
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n" +
                                         self.mediaPlayer.errorString())
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
@@ -197,14 +200,14 @@ class Window(QtWidgets.QMainWindow):
         elif msg == IMG_WARNING:
             self.loadImg(self.currentWP, keepAspect=True)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-            self.msgBox.setText("Image not supported or corrupted")
+            self.msgBox.setText("Image not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
         elif msg == FOLDER_WARNING:
-            self.loadImg(self.currentWP)
+            self.loadImg(self.currentWP, keepAspect=True)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -215,13 +218,13 @@ class Window(QtWidgets.QMainWindow):
 
         elif msg == HELP_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
-            self.msgBox.setText("Right-click on the Jaaw icon at the bottom-right of your screen"
+            self.msgBox.setText("Right-click on the Jaaw! icon at the bottom-right of your screen"
                                 " to enter configuration settings")
             self.msgBox.setWindowTitle("Jaaw! Help")
             self.msgBox.setDetailedText("Image mode will allow you to select one single image or a folder\n"
-                                        "to show all images inside as a carousel\n\n"
+                                        "to show all images inside as a carousel, and its changing interval\n\n"
                                         "Video mode will let you set a video as your wallpaper,\n"
-                                        "giving it a fully customized and totally awsome aspect!")
+                                        "giving it a fully customized and totally awesome aspect!")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
@@ -314,7 +317,7 @@ class Config(QtWidgets.QWidget):
     def openSingleImage(self):
 
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select image",
-                                            ".", "Image Files (*.png *.jpg *.jpeg *.bmp)")
+                                                            ".", "Image Files (*.png *.jpg *.jpeg *.bmp)")
 
         if fileName:
             self.config["img"] = fileName
@@ -334,8 +337,8 @@ class Config(QtWidgets.QWidget):
 
     def openVideo(self):
 
-        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select image",
-                                            ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.wmv)")
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select video",
+                                                            ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.wmv)")
 
         if fileName:
             self.config["video"] = fileName
@@ -363,7 +366,10 @@ def sigint_handler(*args):
 
 
 def exception_hook(exctype, value, traceback):
-    sys._excepthook(exctype, value, traceback)
+    # https://stackoverflow.com/questions/56991627/how-does-the-sys-excepthook-function-work-with-pyqt5
+    traceback_formated = traceback.format_exception(exctype, value, traceback)
+    traceback_string = "".join(traceback_formated)
+    print(traceback_string, file=sys.stderr)
     sys.exit(1)
 
 
