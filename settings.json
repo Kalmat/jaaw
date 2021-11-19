@@ -10,7 +10,7 @@
     ],
     "img_mode": "FIXED",
     "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
-    "folder": "",
+    "folder": "resourcesB/jaaw.png",
     "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
     "Available_periods": [
         {
@@ -44,8 +44,8 @@
     ],
     "img_period": 120,
     "Comment2": "Image to show when in IMAGE mode, and FIXED",
-    "img": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/630070.jpg",
+    "img": "resourcesB/jaaw.png",
     "Comment3": "Video to play when in VIDEO mode",
-    "video": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/Bioshock Rapture.wmv",
+    "video": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/3D Solar System Animation_ After Effects.mp4",
     "firstRun": "False"
 }

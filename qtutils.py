@@ -15,7 +15,7 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
         widgets = parent.centralwidget.findChildren(QtCore.QObject)
     except:
         try:
-            widgets = parent.centralwidget.findChildren(QtCore.QObject)
+            widgets = parent.findChildren(QtCore.QObject)
         except:
             widgets = []
     screen = QtWidgets.QApplication.primaryScreen()

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
+import time
 from os import listdir
 from os.path import isfile, join
 import json
@@ -24,8 +24,6 @@ HELP_WARNING = 4
 
 
 class Window(QtWidgets.QMainWindow):
-
-    showMenu = QtCore.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         QtWidgets.QMainWindow.__init__(self, *args, **kwargs)
@@ -65,7 +63,9 @@ class Window(QtWidgets.QMainWindow):
         self.layout().addWidget(self.bkg_label)
 
         self.mediaPlayer = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
+        self.mediaPlayer.setVolume(0)
         self.playlist = QtMultimedia.QMediaPlaylist()
+        self.playlist.setPlaybackMode(QtMultimedia.QMediaPlaylist.CurrentItemInLoop)
         self.videoWidget = QtMultimediaWidgets.QVideoWidget()
         self.videoWidget.hide()
         self.videoWidget.setGeometry(0, 0, screenSize.width(), screenSize.height())
@@ -113,18 +113,25 @@ class Window(QtWidgets.QMainWindow):
         elif self.wallPaperMode == self.VIDMODE:
             self.loadVideo(utils.resource_path(self.video))
 
+        elif self.wallPaperMode == "":
+            self.img = "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/jaaw.png"
+            self.loadImg(self.img)
+
         else:
             self.showWarning(SETTINGS_WARNING)
 
     @QtCore.pyqtSlot()
     def reloadSettings(self):
-        self.loadSettings()
         self.timer.stop()
+        self.loadSettings()
         self.start()
 
-    def loadImg(self, img):
-        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspect=False)
+    def loadImg(self, img, keepAspect=False):
+        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspect=keepAspect)
         if pixmap:
+            self.playlist.clear()
+            self.mediaPlayer.setPlaylist(self.playlist)
+            self.videoWidget.hide()
             self.bkg_label.setPixmap(pixmap)
             self.videoWidget.hide()
             self.bkg_label.show()
@@ -142,12 +149,10 @@ class Window(QtWidgets.QMainWindow):
         # https://stackoverflow.com/questions/57842104/how-to-play-videos-in-pyqt/57842233
         self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
-        self.playlist.setPlaybackMode(QtMultimedia.QMediaPlaylist.CurrentItemInLoop)
         self.mediaPlayer.setPlaylist(self.playlist)
-        self.mediaPlayer.setVolume(0)
         self.bkg_label.hide()
-        self.mediaPlayer.play()
         self.videoWidget.show()
+        self.mediaPlayer.play()
 
     def getImgInFolder(self, folder):
         files = [file for file in listdir(folder) if isfile(join(folder, file))]
@@ -166,8 +171,6 @@ class Window(QtWidgets.QMainWindow):
 
     def showWarning(self, msg):
 
-        retval = None
-
         if msg == PLAY_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported or corrupted")
@@ -175,10 +178,8 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"+
                                         self.mediaPlayer.errorString())
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            retval = self.msgBox.exec_()
-            # self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
-            self.bkg_label.show()
-            self.menu.openVideo()
+            self.msgBox.exec_()
+            self.loadImg(self.currentWP, keepAspect=True)
 
         elif msg == SETTINGS_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
@@ -186,10 +187,8 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            retval = self.msgBox.exec_()
-            self.bkg_label.show()
-            self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
-            # self.menu.openVideo()
+            self.msgBox.exec_()
+            self.loadImg(self.currentWP, keepAspect=True)
 
         elif msg == IMG_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
@@ -197,10 +196,8 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            retval = self.msgBox.exec_()
-            # self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
-            self.bkg_label.show()
-            self.menu.openSingleImage()
+            self.msgBox.exec_()
+            self.loadImg(self.currentWP, keepAspect=True)
 
         elif msg == FOLDER_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
@@ -209,10 +206,8 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.timer.stop()
-            retval = self.msgBox.exec_()
-            #self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
-            self.bkg_label.show()
-            self.menu.openFolder()
+            self.msgBox.exec_()
+            self.loadImg(self.currentWP)
 
         elif msg == HELP_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
@@ -224,10 +219,9 @@ class Window(QtWidgets.QMainWindow):
                                         "Video mode will let you set a video as your wallpaper,\n"
                                         "giving it a fully customized and totally awsome aspect!")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            retval = self.msgBox.exec_()
-            # self.menu.showMenu(QtCore.QPoint(self.msgBox.x(), self.msgBox.y()))
+            self.msgBox.exec_()
 
-        return retval
+        return
 
     def keyPressEvent(self, event):
 
@@ -298,41 +292,41 @@ class Config(QtWidgets.QWidget):
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
         self.quitAct = self.contextMenu.addAction("Quit", self.sendCloseAll)
 
-        trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(CONFIG_ICON), self)
-        trayIcon.setContextMenu(self.contextMenu)
-        trayIcon.setToolTip("Jaaw!")
-        trayIcon.show()
-
-    def showMenu(self, pos=QtCore.QPoint(0, 0)):
-        self.contextMenu.exec_(self.mapToGlobal(pos))
+        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(CONFIG_ICON), self)
+        self.trayIcon.setContextMenu(self.contextMenu)
+        self.trayIcon.setToolTip("Jaaw!")
+        self.trayIcon.show()
 
     def openSingleImage(self):
 
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select image",
                                             ".", "Image Files (*.png *.jpg *.jpeg *.bmp)")
 
-        self.config["img"] = fileName
-        self.config["mode"] = self.IMGMODE
-        self.config["img_mode"] = self.IMGFIXED
-        self.saveSettings()
+        if fileName:
+            self.config["img"] = fileName
+            self.config["mode"] = self.IMGMODE
+            self.config["img_mode"] = self.IMGFIXED
+            self.saveSettings()
 
     def openFolder(self):
 
         fileName = QtWidgets.QFileDialog.getExistingDirectory(self, "Select folder", ".")
 
-        self.config["folder"] = fileName
-        self.config["mode"] = self.IMGMODE
-        self.config["img_mode"] = self.IMGCAROUSEL
-        self.saveSettings()
+        if fileName:
+            self.config["folder"] = fileName
+            self.config["mode"] = self.IMGMODE
+            self.config["img_mode"] = self.IMGCAROUSEL
+            self.saveSettings()
 
     def openVideo(self):
 
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select image",
                                             ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.wmv)")
 
-        self.config["video"] = fileName
-        self.config["mode"] = self.VIDMODE
-        self.saveSettings()
+        if fileName:
+            self.config["video"] = fileName
+            self.config["mode"] = self.VIDMODE
+            self.saveSettings()
 
     def sendShowHelp(self):
         self.showHelp.emit()
