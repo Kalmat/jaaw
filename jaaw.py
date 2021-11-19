@@ -28,13 +28,13 @@ class Window(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         QtWidgets.QMainWindow.__init__(self, *args, **kwargs)
 
+        self.currentWP = bkgutils.getWallPaper()
+
         self.setupUi()
         self.xmax, self.ymax, self.widgets = qtutils.initDisplay(parent=self,
                                                                  setAsWallpaper=True,
                                                                  icon=SYSTEM_ICON,
                                                                  caption=CAPTION)
-        self.currentWP = bkgutils.getWallPaper()
-
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
 
@@ -63,7 +63,7 @@ class Window(QtWidgets.QMainWindow):
         self.layout().addWidget(self.bkg_label)
 
         self.mediaPlayer = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
-        self.mediaPlayer.setVolume(0)
+        self.mediaPlayer.setMuted(True)
         self.playlist = QtMultimedia.QMediaPlaylist()
         self.playlist.setPlaybackMode(QtMultimedia.QMediaPlaylist.CurrentItemInLoop)
         self.videoWidget = QtMultimediaWidgets.QVideoWidget()
@@ -130,9 +130,9 @@ class Window(QtWidgets.QMainWindow):
     def loadImg(self, img, keepAspect=False):
         pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspect=keepAspect)
         if pixmap:
+            self.mediaPlayer.stop()
             self.playlist.clear()
             self.mediaPlayer.setPlaylist(self.playlist)
-            self.videoWidget.hide()
             self.bkg_label.setPixmap(pixmap)
             self.videoWidget.hide()
             self.bkg_label.show()
@@ -168,11 +168,15 @@ class Window(QtWidgets.QMainWindow):
         self.showWarning(HELP_WARNING)
 
     def handlePlayError(self):
+        self.playlist.clear()
+        self.mediaPlayer.setPlaylist(self.playlist)
+        self.videoWidget.hide()
         self.showWarning(PLAY_WARNING)
 
     def showWarning(self, msg):
 
         if msg == PLAY_WARNING:
+            self.loadImg(self.currentWP, keepAspect=True)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -180,27 +184,27 @@ class Window(QtWidgets.QMainWindow):
                                         self.mediaPlayer.errorString())
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.loadImg(self.currentWP, keepAspect=True)
 
         elif msg == SETTINGS_WARNING:
+            self.loadImg(self.currentWP, keepAspect=True)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Configure your own settings and media to use as wallpaper")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.loadImg(self.currentWP, keepAspect=True)
 
         elif msg == IMG_WARNING:
+            self.loadImg(self.currentWP, keepAspect=True)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.loadImg(self.currentWP, keepAspect=True)
 
         elif msg == FOLDER_WARNING:
+            self.loadImg(self.currentWP)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -208,7 +212,6 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.timer.stop()
             self.msgBox.exec_()
-            self.loadImg(self.currentWP)
 
         elif msg == HELP_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
@@ -240,8 +243,6 @@ class Window(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def closeAll(self):
-        self.timer.stop()
-        self.mediaPlayer.stop()
         bkgutils.set_wallpaper(self.currentWP, use_activedesktop=False)
         QtWidgets.QApplication.quit()
 
@@ -284,13 +285,12 @@ class Config(QtWidgets.QWidget):
             QMenu:selected {background-color: #666; color: #fff;}""")
 
         self.imgAct = self.contextMenu.addMenu("Image")
-        self.fimgAct = self.imgAct.addAction("Select image (single)", self.openSingleImage)
-        self.cimgAct = self.imgAct.addAction("Select folder (carousel)", self.openFolder)
-        # self.cimgAct = self.imgAct.addMenu("Select image carousel")
-        # self.imgfAct = self.cimgAct.addAction("Select folder", self.openFolder)
-        # self.pimgAct = self.cimgAct.addMenu("Select carousel interval")
-        # for interval in self.imgPeriods:
-        #     self.pimgAct.addAction(interval["text"], (lambda: self.assignPeriod(interval)))
+        self.fimgAct = self.imgAct.addAction("Single image", self.openSingleImage)
+        self.cimgAct = self.imgAct.addMenu("Carousel of images")
+        self.imgfAct = self.cimgAct.addAction("Select folder", self.openFolder)
+        self.pimgAct = self.cimgAct.addMenu("Select carousel interval")
+        for interval in self.imgPeriods:
+            self.addOptions(self.pimgAct, interval["text"], interval["duration"])
 
         self.videoAct = self.contextMenu.addMenu("Video")
         self.fvideoAct = self.videoAct.addAction("Select video file", self.openVideo)
@@ -299,13 +299,17 @@ class Config(QtWidgets.QWidget):
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
         self.quitAct = self.contextMenu.addAction("Quit", self.sendCloseAll)
 
-        self.trayIcon = QtWidgets.QSystemTrayIcon(utils.resource_path(QtGui.QIcon(CONFIG_ICON)), self)
+        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(CONFIG_ICON), self)
         self.trayIcon.setContextMenu(self.contextMenu)
         self.trayIcon.setToolTip("Jaaw!")
         self.trayIcon.show()
 
-    def assignPeriod(self, interval):
-        self.imgPeriod = interval["duration"]
+    def addOptions(self, option, text, value):
+        option.addAction(text, (lambda: self.execAction(value)))
+
+    def execAction(self, interval):
+        self.config["img_period"] = int(interval)
+        self.saveSettings()
 
     def openSingleImage(self):
 

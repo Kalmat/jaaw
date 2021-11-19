@@ -3,7 +3,7 @@
         "IMAGE",
         "VIDEO"
     ],
-    "mode": "IMAGE",
+    "mode": "VIDEO",
     "Available_img_modes": [
         "FIXED",
         "CAROUSEL"

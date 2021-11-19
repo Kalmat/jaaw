@@ -24,5 +24,4 @@ The application and tray icons are... well, horrible. I have no graphic design c
 
 ### PENDING
 
-* Add period selection for image carousel on settings
 * Refactor bkgutils (win32) functions
