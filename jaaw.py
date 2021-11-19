@@ -77,27 +77,33 @@ class Window(QtWidgets.QMainWindow):
 
     def loadSettings(self):
 
-        with open(SETTINGS_FILE, encoding='UTF-8') as file:
-            self.config = json.load(file)
+        ret = True
 
-        if self.config["firstRun"] == "True":
+        try:
+            with open(SETTINGS_FILE, encoding='UTF-8') as file:
+                self.config = json.load(file)
+        except:
+            ret = False
+
+        if not ret or self.config["firstRun"] == "True":
             self.showWarning(SETTINGS_WARNING)
-            return False
+            ret = False
 
-        self.contentFolder = self.config["folder"]
-        self.wallPaperMode = self.config["mode"]
-        self.imgMode = self.config["img_mode"]
-        self.imgPeriods = self.config["Available_periods"]
-        self.imgPeriod = self.config["img_period"]
-        self.img = self.config["img"]
-        self.video = self.config["video"]
+        else:
+            self.contentFolder = self.config["folder"]
+            self.wallPaperMode = self.config["mode"]
+            self.imgMode = self.config["img_mode"]
+            self.imgPeriods = self.config["Available_periods"]
+            self.imgPeriod = self.config["img_period"]
+            self.img = self.config["img"]
+            self.video = self.config["video"]
 
-        self.IMGMODE = self.config["Available_modes"][0]
-        self.VIDMODE = self.config["Available_modes"][1]
-        self.IMGFIXED = self.config["Available_img_modes"][0]
-        self.IMGCAROUSEL = self.config["Available_img_modes"][1]
+            self.IMGMODE = self.config["Available_modes"][0]
+            self.VIDMODE = self.config["Available_modes"][1]
+            self.IMGFIXED = self.config["Available_img_modes"][0]
+            self.IMGCAROUSEL = self.config["Available_img_modes"][1]
 
-        return True
+        return ret
 
     def start(self):
 
