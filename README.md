@@ -10,12 +10,13 @@ Furthermore, you won't need any Admin privileges to install it (it's fully porta
 
 ## How to use it
 
-Run it, and right-click on the Jaaw! tray icon to config your preferred settings:
-Image / Single image - Select an image as static Wallpaper
-Image / Folder - Select a folder containing all images you want to show in carousel mode
-Video - Select a video to show as wallpaper... looks awesome!
-Help
-Quit
+Run it, and right-click on the Jaaw! tray icon to access options menu:
+
+* Image / Single image - Select an image as static Wallpaper
+* Image / Folder - Select a folder containing all images you want to show in carousel mode
+* Video - Select a video to show as wallpaper... looks awesome!
+* Help
+* Quit
 
 #### IMPORTANT
 
