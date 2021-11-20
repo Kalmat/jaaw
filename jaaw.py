@@ -17,6 +17,11 @@ DEFAULT_SETTINGS_FILE = "resources/defsett.json"
 CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
 SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
 
+IMGMODE = "IMAGE"
+VIDMODE = "VIDEO"
+IMGFIXED = "FIXED"
+IMGCAROUSEL = "CAROUSEL"
+
 PLAY_WARNING = 0
 SETTINGS_WARNING = 1
 IMG_WARNING = 2
@@ -43,14 +48,16 @@ class Window(QtWidgets.QMainWindow):
         self.imgIndex = 0
         self.mouse_pos = QtCore.QPoint(0, 0)
 
-        self.menu = Config(self)
+        if self.loadSettings():
+            self.start()
+        else:
+            self.config["img"] = self.currentWP
+
+        self.menu = Config(self, self.config)
         self.menu.reloadSettings.connect(self.reloadSettings)
         self.menu.closeAll.connect(self.closeAll)
         self.menu.showHelp.connect(self.showHelp)
         self.menu.show()
-
-        if self.loadSettings():
-            self.start()
 
     def setupUi(self):
 
@@ -83,16 +90,19 @@ class Window(QtWidgets.QMainWindow):
         try:
             with open(SETTINGS_FILE, encoding='UTF-8') as file:
                 self.config = json.load(file)
+            self.loadSettingsValues()
+
         except:
             ret = False
             with open(utils.resource_path(DEFAULT_SETTINGS_FILE), encoding='UTF-8') as file:
                 self.config = json.load(file)
-
-        if not ret or self.config["firstRun"] == "True":
+            self.loadSettingsValues()
+            self.img = self.currentWP
             self.showWarning(SETTINGS_WARNING)
-            ret = False
 
-        else:
+        return ret
+
+    def loadSettingsValues(self):
             self.contentFolder = self.config["folder"]
             self.wallPaperMode = self.config["mode"]
             self.imgMode = self.config["img_mode"]
@@ -101,34 +111,23 @@ class Window(QtWidgets.QMainWindow):
             self.img = self.config["img"]
             self.video = self.config["video"]
 
-            self.IMGMODE = self.config["Available_modes"][0]
-            self.VIDMODE = self.config["Available_modes"][1]
-            self.IMGFIXED = self.config["Available_img_modes"][0]
-            self.IMGCAROUSEL = self.config["Available_img_modes"][1]
-
-        return ret
-
     def start(self):
 
-        if self.wallPaperMode == self.IMGMODE:
+        if self.wallPaperMode == IMGMODE:
 
-            if self.imgMode == self.IMGCAROUSEL:
+            if self.imgMode == IMGCAROUSEL:
                 self.imgList = self.getImgInFolder(self.contentFolder)
                 self.timer.start(self.imgPeriod * 1000)
                 self.loadNextImg()
 
-            elif self.imgMode == self.IMGFIXED:
+            elif self.imgMode == IMGFIXED:
                 self.loadImg(self.img)
 
             else:
                 self.showWarning(SETTINGS_WARNING)
 
-        elif self.wallPaperMode == self.VIDMODE:
+        elif self.wallPaperMode == VIDMODE:
             self.loadVideo(utils.resource_path(self.video))
-
-        elif self.wallPaperMode == "":
-            self.img = "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/jaaw.png"
-            self.loadImg(self.img)
 
         else:
             self.showWarning(SETTINGS_WARNING)
@@ -139,9 +138,10 @@ class Window(QtWidgets.QMainWindow):
         self.loadSettings()
         self.start()
 
-    def loadImg(self, img, keepAspect=False):
+    def loadImg(self, img, keepAspect=True):
         pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspect=keepAspect)
         if pixmap:
+            self.bkg_label.clear()
             self.mediaPlayer.stop()
             self.playlist.clear()
             self.mediaPlayer.setPlaylist(self.playlist)
@@ -187,27 +187,17 @@ class Window(QtWidgets.QMainWindow):
 
     def showWarning(self, msg):
 
-        if msg == PLAY_WARNING:
-            self.loadImg(self.currentWP, keepAspect=True)
+        if msg == SETTINGS_WARNING:
+            self.loadImg(self.currentWP)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-            self.msgBox.setText("Video not supported, moved or corrupted")
+            self.msgBox.setText("Configure your own settings and media to use as wallpaper\n"
+                                "Right-click the Jaaw! tray icon to open settings")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n" +
-                                        self.mediaPlayer.errorString())
-            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            self.msgBox.exec_()
-
-        elif msg == SETTINGS_WARNING:
-            self.loadImg(self.currentWP, keepAspect=True)
-            self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-            self.msgBox.setText("Configure your own settings and media to use as wallpaper")
-            self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
         elif msg == IMG_WARNING:
-            self.loadImg(self.currentWP, keepAspect=True)
+            self.loadImg(self.currentWP)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -216,13 +206,23 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == FOLDER_WARNING:
-            self.loadImg(self.currentWP, keepAspect=True)
+            self.loadImg(self.currentWP)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.timer.stop()
+            self.msgBox.exec_()
+
+        elif msg == PLAY_WARNING:
+            self.loadImg(self.currentWP)
+            self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
+            self.msgBox.setText("Video not supported, moved or corrupted")
+            self.msgBox.setWindowTitle("Jaaw! Warning")
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n" +
+                                        self.mediaPlayer.errorString())
+            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
         elif msg == HELP_WARNING:
@@ -265,67 +265,68 @@ class Config(QtWidgets.QWidget):
     closeAll = QtCore.pyqtSignal()
     showHelp = QtCore.pyqtSignal()
 
-    def __init__(self, *args, **kwargs):
-        QtWidgets.QWidget.__init__(self, *args, **kwargs)
+    def __init__(self, parent, config):
+        QtWidgets.QWidget.__init__(self, parent)
 
-        self.loadSettings()
+        self.indicator = " " + u'\u2713'  # UTF "tick" character
+        self.leftIndicator = u'\u2713' + " "
+        self.gap = "     "
+        self.config = config
         self.setupUI()
-
-    def loadSettings(self):
-
-        try:
-            with open(SETTINGS_FILE, encoding='UTF-8') as file:
-                self.config = json.load(file)
-        except:
-            with open(utils.resource_path(DEFAULT_SETTINGS_FILE), encoding='UTF-8') as file:
-                self.config = json.load(file)
-
-        self.contentFolder = self.config["folder"]
-        self.wallPaperMode = self.config["mode"]
-        self.imgMode = self.config["img_mode"]
-        self.imgPeriods = self.config["Available_periods"]
-        self.imgPeriod = self.config["img_period"]
-        self.img = self.config["img"]
-        self.video = self.config["video"]
-
-        self.IMGMODE = self.config["Available_modes"][0]
-        self.VIDMODE = self.config["Available_modes"][1]
-        self.IMGFIXED = self.config["Available_img_modes"][0]
-        self.IMGCAROUSEL = self.config["Available_img_modes"][1]
 
     def setupUI(self):
 
         self.contextMenu = QtWidgets.QMenu(self)
         self.contextMenu.setStyleSheet("""
-            QMenu {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 5; padding-left: 20}
+            QMenu {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 5}
             QMenu:selected {background-color: #666; color: #fff;}""")
 
-        self.imgAct = self.contextMenu.addMenu("Image")
-        self.fimgAct = self.imgAct.addAction("Single image", self.openSingleImage)
-        self.cimgAct = self.imgAct.addMenu("Carousel of images")
-        self.imgfAct = self.cimgAct.addAction("Select folder", self.openFolder)
-        self.pimgAct = self.cimgAct.addMenu("Select carousel interval")
-        for interval in self.imgPeriods:
-            self.addOptions(self.pimgAct, interval["text"], interval["duration"])
+        self.imgAct = self.contextMenu.addMenu(self.gap + "Image")
+        self.fimgAct = self.imgAct.addAction(self.gap + "Single image", self.openSingleImage)
+        self.cimgAct = self.imgAct.addMenu(self.gap + "Carousel of images")
+        self.imgfAct = self.cimgAct.addAction(self.gap + "Select folder", self.openFolder)
+        self.pimgAct = self.cimgAct.addMenu(self.gap + "Select carousel interval")
+        imgPeriod = self.config["img_period"]
+        periods = self.config["Available_periods"]
+        for key in periods.keys():
+            if imgPeriod == periods[key]:
+                indicator = self.indicator
+            else:
+                indicator = ""
+            self.addOptions(self.pimgAct, key + indicator, periods[key])
 
-        self.videoAct = self.contextMenu.addMenu("Video")
-        self.fvideoAct = self.videoAct.addAction("Select video file", self.openVideo)
+        self.videoAct = self.contextMenu.addMenu(self.gap + "Video")
+        self.fvideoAct = self.videoAct.addAction(self.gap + "Select video file", self.openVideo)
 
         self.contextMenu.addSeparator()
-        self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
-        self.quitAct = self.contextMenu.addAction("Quit", self.sendCloseAll)
+        self.helpAct = self.contextMenu.addAction(self.gap + "Help", self.sendShowHelp)
+        self.quitAct = self.contextMenu.addAction(self.gap + "Quit", self.sendCloseAll)
+        self.updateCheck()
 
         self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(CONFIG_ICON), self)
-        self.trayIcon.setContextMenu(self.contextMenu)
         self.trayIcon.setToolTip("Jaaw!")
+        self.trayIcon.setContextMenu(self.contextMenu)
         self.trayIcon.show()
 
     def addOptions(self, option, text, value):
-        option.addAction(text, (lambda: self.execAction(value)))
+        option.addAction(text, (lambda: self.execAction(text, value)))
 
-    def execAction(self, interval):
+    def execAction(self, text, interval):
+        text = text.replace(self.indicator, self.gap)
+        for option in self.pimgAct.children():
+            option.setText(option.text().replace(self.indicator, self.gap))
+            if option.text() == text:
+                option.setText(text + self.indicator)
+        self.pimgAct.update()
         self.config["img_period"] = int(interval)
         self.saveSettings()
+
+    def updateCheck(self):
+        self.imgAct.setTitle((self.imgAct.title().replace(self.gap, self.leftIndicator) if self.config["mode"] == IMGMODE else self.imgAct.title().replace(self.leftIndicator, self.gap)))
+        self.fimgAct.setText((self.fimgAct.text().replace(self.gap, self.leftIndicator) if self.config["mode"] == IMGMODE and self.config["img_mode"] == IMGFIXED else self.fimgAct.text().replace(self.leftIndicator, self.gap)))
+        self.cimgAct.setTitle((self.cimgAct.title().replace(self.gap, self.leftIndicator) if self.config["mode"] == IMGMODE and self.config["img_mode"] == IMGCAROUSEL else self.cimgAct.title().replace(self.leftIndicator, self.gap)))
+        self.videoAct.setTitle((self.videoAct.title().replace(self.gap, self.leftIndicator) if self.config["mode"] == VIDMODE else self.videoAct.title().replace(self.leftIndicator, self.gap)))
+        self.contextMenu.update()
 
     def openSingleImage(self):
 
@@ -334,8 +335,9 @@ class Config(QtWidgets.QWidget):
 
         if fileName:
             self.config["img"] = fileName
-            self.config["mode"] = self.IMGMODE
-            self.config["img_mode"] = self.IMGFIXED
+            self.config["mode"] = IMGMODE
+            self.config["img_mode"] = IMGFIXED
+            self.updateCheck()
             self.saveSettings()
 
     def openFolder(self):
@@ -344,8 +346,9 @@ class Config(QtWidgets.QWidget):
 
         if fileName:
             self.config["folder"] = fileName
-            self.config["mode"] = self.IMGMODE
-            self.config["img_mode"] = self.IMGCAROUSEL
+            self.config["mode"] = IMGMODE
+            self.config["img_mode"] = IMGCAROUSEL
+            self.updateCheck()
             self.saveSettings()
 
     def openVideo(self):
@@ -355,7 +358,8 @@ class Config(QtWidgets.QWidget):
 
         if fileName:
             self.config["video"] = fileName
-            self.config["mode"] = self.VIDMODE
+            self.config["mode"] = VIDMODE
+            self.updateCheck()
             self.saveSettings()
 
     def sendShowHelp(self):
@@ -366,7 +370,6 @@ class Config(QtWidgets.QWidget):
 
     def saveSettings(self):
 
-        self.config["firstRun"] = "False"
         try:
             with open(SETTINGS_FILE, "w", encoding='UTF-8') as file:
                 json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)

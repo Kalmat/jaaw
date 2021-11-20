@@ -12,40 +12,18 @@
     "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
     "folder": "",
     "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
-    "Available_periods": [
-        {
-            "text": "30 sec",
-            "duration": 30
-        },
-        {
-            "text": "1 min",
-            "duration": 60
-        },
-        {
-            "text": "2 min",
-            "duration": 120
-        },
-        {
-            "text": "5 min",
-            "duration": 300
-        },
-        {
-            "text": "15 min",
-            "duration": 900
-        },
-        {
-            "text": "30 min",
-            "duration": 1800
-        },
-        {
-            "text": "1 hour",
-            "duration": 3600
-        }
-    ],
+    "Available_periods": {
+            "30 sec": 30,
+            "1 min": 60,
+            "2 min": 120,
+            "5 min": 300,
+            "15 min": 900,
+            "30 min": 1800,
+            "1 hour": 3600
+    },
     "img_period": 120,
     "Comment2": "Image to show when in IMAGE mode, and FIXED",
     "img": "resources/jaaw.png",
     "Comment3": "Video to play when in VIDEO mode",
-    "video": "",
-    "firstRun": "True"
+    "video": ""
 }
