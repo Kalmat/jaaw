@@ -13,6 +13,7 @@ import signal
 
 CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
 SETTINGS_FILE = "settings.json"
+DEFAULT_SETTINGS_FILE = "resources/defsett.json"
 CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
 SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
 
@@ -84,6 +85,8 @@ class Window(QtWidgets.QMainWindow):
                 self.config = json.load(file)
         except:
             ret = False
+            with open(DEFAULT_SETTINGS_FILE, encoding='UTF-8') as file:
+                self.config = json.load(file)
 
         if not ret or self.config["firstRun"] == "True":
             self.showWarning(SETTINGS_WARNING)
@@ -270,8 +273,12 @@ class Config(QtWidgets.QWidget):
 
     def loadSettings(self):
 
-        with open(SETTINGS_FILE, encoding='UTF-8') as file:
-            self.config = json.load(file)
+        try:
+            with open(SETTINGS_FILE, encoding='UTF-8') as file:
+                self.config = json.load(file)
+        except:
+            with open(DEFAULT_SETTINGS_FILE, encoding='UTF-8') as file:
+                self.config = json.load(file)
 
         self.contentFolder = self.config["folder"]
         self.wallPaperMode = self.config["mode"]
@@ -360,8 +367,11 @@ class Config(QtWidgets.QWidget):
     def saveSettings(self):
 
         self.config["firstRun"] = "False"
-        with open(SETTINGS_FILE, "w", encoding='UTF-8') as file:
-            json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
+        try:
+            with open(SETTINGS_FILE, "w", encoding='UTF-8') as file:
+                json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
+        except:
+            print("Error saving Settings. Your changes will not take effect.")
 
         self.reloadSettings.emit()
 
