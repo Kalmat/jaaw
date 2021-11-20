@@ -85,7 +85,7 @@ class Window(QtWidgets.QMainWindow):
                 self.config = json.load(file)
         except:
             ret = False
-            with open(DEFAULT_SETTINGS_FILE, encoding='UTF-8') as file:
+            with open(utils.resource_path(DEFAULT_SETTINGS_FILE), encoding='UTF-8') as file:
                 self.config = json.load(file)
 
         if not ret or self.config["firstRun"] == "True":
@@ -277,7 +277,7 @@ class Config(QtWidgets.QWidget):
             with open(SETTINGS_FILE, encoding='UTF-8') as file:
                 self.config = json.load(file)
         except:
-            with open(DEFAULT_SETTINGS_FILE, encoding='UTF-8') as file:
+            with open(utils.resource_path(DEFAULT_SETTINGS_FILE), encoding='UTF-8') as file:
                 self.config = json.load(file)
 
         self.contentFolder = self.config["folder"]
