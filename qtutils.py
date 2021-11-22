@@ -25,8 +25,6 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
     if xmax >= screenSize.width() or ymax >= screenSize.height() or setAsWallpaper or fullScreen:
         if setAsWallpaper:
             parent.setWindowFlags(QtCore.Qt.WindowStaysOnBottomHint | QtCore.Qt.FramelessWindowHint)
-            if caption:
-                bkgutils.sendBehind(caption)
         else:
             parent.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         parent.showFullScreen()
@@ -377,13 +375,17 @@ def createImgFromText(text, font, bcolor=QtGui.QColor(QtCore.Qt.black), fcolor=Q
     return img
 
 
-def resizeImageWithQT(src, width, height, keepAspect=True):
+def resizeImageWithQT(src, width, height, keepAspectRatio=True, expand=True):
     try:
         pixmap = QtGui.QPixmap(utils.resource_path(src))
-        if keepAspect:
-            pixmap_resized = pixmap.scaled(int(width), int(height), QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
+        if keepAspectRatio:
+            if expand:
+                flag = QtCore.Qt.KeepAspectRatioByExpanding
+            else:
+                flag = QtCore.Qt.KeepAspectRatio
         else:
-            pixmap_resized = pixmap.scaled(int(width), int(height), QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.SmoothTransformation)
+            flag = QtCore.Qt.IgnoreAspectRatio
+        pixmap_resized = pixmap.scaled(int(width), int(height), flag, QtCore.Qt.SmoothTransformation)
     except:
         pixmap_resized = None
     return pixmap_resized

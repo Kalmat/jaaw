@@ -1,2 +1,4 @@
 PyQt5
-pytz
+ctypes
+xlib; sys_platform == 'linux'
+ewmh; sys_platform == 'linux'

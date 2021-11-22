@@ -10,12 +10,13 @@ import bkgutils
 import utils
 from PyQt5 import QtWidgets, QtCore, QtGui, QtMultimedia, QtMultimediaWidgets
 import signal
+import traceback
 
 CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
-SETTINGS_FILE = "settings.json"
-DEFAULT_SETTINGS_FILE = "resources/defsett.json"
 CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
 SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
+SETTINGS_FILE = "settings.json"
+DEFAULT_SETTINGS_FILE = "resources/defsett.json"
 
 IMGMODE = "IMAGE"
 VIDMODE = "VIDEO"
@@ -27,6 +28,8 @@ SETTINGS_WARNING = 1
 IMG_WARNING = 2
 FOLDER_WARNING = 3
 HELP_WARNING = 4
+
+INDICATOR = u'\u2713'  # UTF "tick" character
 
 
 class Window(QtWidgets.QMainWindow):
@@ -46,7 +49,6 @@ class Window(QtWidgets.QMainWindow):
 
         self.imgList = []
         self.imgIndex = 0
-        self.mouse_pos = QtCore.QPoint(0, 0)
 
         if self.loadSettings():
             self.start()
@@ -59,6 +61,8 @@ class Window(QtWidgets.QMainWindow):
         self.menu.showHelp.connect(self.showHelp)
         self.menu.show()
 
+        bkgutils.sendBehind(CAPTION)
+
     def setupUi(self):
 
         screenSize = qtutils.getScreenSize()
@@ -68,8 +72,12 @@ class Window(QtWidgets.QMainWindow):
         self.bkg_label = QtWidgets.QLabel()
         self.bkg_label.hide()
         self.bkg_label.setGeometry(0, 0, screenSize.width(), screenSize.height())
+        self.bkg_label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout().addWidget(self.bkg_label)
 
+        # Reduce CPU?
+        # Explorer.exe shell:appsFolder\Microsoft.ZuneVideo_8wekyb3d8bbwe!Microsoft.ZuneVideo
+        # https://stackoverflow.com/questions/57015932/how-to-attach-and-detach-an-external-app-with-pyqt5-or-dock-an-external-applicat
         self.mediaPlayer = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
         self.mediaPlayer.setMuted(True)
         self.playlist = QtMultimedia.QMediaPlaylist()
@@ -103,13 +111,13 @@ class Window(QtWidgets.QMainWindow):
         return ret
 
     def loadSettingsValues(self):
-            self.contentFolder = self.config["folder"]
-            self.wallPaperMode = self.config["mode"]
-            self.imgMode = self.config["img_mode"]
-            self.imgPeriods = self.config["Available_periods"]
-            self.imgPeriod = self.config["img_period"]
-            self.img = self.config["img"]
-            self.video = self.config["video"]
+        self.contentFolder = self.config["folder"]
+        self.wallPaperMode = self.config["mode"]
+        self.imgMode = self.config["img_mode"]
+        self.imgPeriods = self.config["Available_periods"]
+        self.imgPeriod = self.config["img_period"]
+        self.img = self.config["img"]
+        self.video = self.config["video"]
 
     def start(self):
 
@@ -138,8 +146,8 @@ class Window(QtWidgets.QMainWindow):
         self.loadSettings()
         self.start()
 
-    def loadImg(self, img, keepAspect=True):
-        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspect=keepAspect)
+    def loadImg(self, img, keepAspect=True, expand=True):
+        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
         if pixmap:
             self.bkg_label.clear()
             self.mediaPlayer.stop()
@@ -159,7 +167,6 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(FOLDER_WARNING)
 
     def loadVideo(self, video):
-        # https://stackoverflow.com/questions/57842104/how-to-play-videos-in-pyqt/57842233
         self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
         self.mediaPlayer.setPlaylist(self.playlist)
@@ -239,23 +246,13 @@ class Window(QtWidgets.QMainWindow):
 
         return
 
-    def keyPressEvent(self, event):
-
-        if event.key() in (QtCore.Qt.Key_Q, QtCore.Qt.Key_Escape):
-            self.closeAll()
-        super(Window, self).keyPressEvent(event)
-
     def closeEvent(self, event):
         self.closeAll()
         super(Window, self).closeEvent(event)
 
-    def mousePressEvent(self, event):
-        self.mouse_pos = event.pos()
-        super(Window, self).mousePressEvent(event)
-
     @QtCore.pyqtSlot()
     def closeAll(self):
-        bkgutils.set_wallpaper(self.currentWP, use_activedesktop=False)
+        bkgutils.setWallpaper(self.currentWP)
         QtWidgets.QApplication.quit()
 
 
@@ -268,13 +265,17 @@ class Config(QtWidgets.QWidget):
     def __init__(self, parent, config):
         QtWidgets.QWidget.__init__(self, parent)
 
-        self.indicator = " " + u'\u2713'  # UTF "tick" character
-        self.leftIndicator = u'\u2713' + " "
+        self.indicator = " " + INDICATOR
+        self.leftIndicator = INDICATOR + " "
         self.gap = "     "
+
         self.config = config
+
         self.setupUI()
 
     def setupUI(self):
+
+        self.defaultStyleSeet = self.styleSheet()
 
         self.contextMenu = QtWidgets.QMenu(self)
         self.contextMenu.setStyleSheet("""
@@ -354,7 +355,7 @@ class Config(QtWidgets.QWidget):
     def openVideo(self):
 
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select video",
-                                                            ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.wmv)")
+                                                            ".", "Video Files (*.flv *.ts *.mts *.avi *.wmv)")
 
         if fileName:
             self.config["video"] = fileName
@@ -373,10 +374,9 @@ class Config(QtWidgets.QWidget):
         try:
             with open(SETTINGS_FILE, "w", encoding='UTF-8') as file:
                 json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
+            self.reloadSettings.emit()
         except:
             print("Error saving Settings. Your changes will not take effect.")
-
-        self.reloadSettings.emit()
 
 
 def sigint_handler(*args):
@@ -384,9 +384,9 @@ def sigint_handler(*args):
     app.closeAllWindows()
 
 
-def exception_hook(exctype, value, traceback):
+def exception_hook(exctype, value, tb):
     # https://stackoverflow.com/questions/56991627/how-does-the-sys-excepthook-function-work-with-pyqt5
-    traceback_formated = traceback.format_exception(exctype, value, traceback)
+    traceback_formated = traceback.format_exception(exctype, value, tb)
     traceback_string = "".join(traceback_formated)
     print(traceback_string, file=sys.stderr)
     sys.exit(1)
