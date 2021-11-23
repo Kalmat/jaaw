@@ -1,7 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import bkgutils
+import requests
+import shutil
 import utils
 from PyQt5 import QtWidgets, QtCore, QtGui
 
@@ -12,13 +13,6 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
     parent.setWindowTitle(caption)
 
     xmax, ymax = size
-    try:
-        widgets = parent.centralwidget.findChildren(QtCore.QObject)
-    except:
-        try:
-            widgets = parent.findChildren(QtCore.QObject)
-        except:
-            widgets = []
     screen = QtWidgets.QApplication.primaryScreen()
     screenSize = screen.size()
 
@@ -57,7 +51,7 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
         flags = parent.windowFlags() | QtCore.Qt.WindowStaysOnBottomHint
         parent.setWindowFlags(flags)
 
-    return xmax, ymax, widgets
+    return xmax, ymax
 
 
 def getScreenSize():
@@ -376,8 +370,9 @@ def createImgFromText(text, font, bcolor=QtGui.QColor(QtCore.Qt.black), fcolor=Q
 
 
 def resizeImageWithQT(src, width, height, keepAspectRatio=True, expand=True):
-    try:
-        pixmap = QtGui.QPixmap(utils.resource_path(src))
+    pixmap_resized = None
+    pixmap = QtGui.QPixmap(utils.resource_path(src))
+    if pixmap:
         if keepAspectRatio:
             if expand:
                 flag = QtCore.Qt.KeepAspectRatioByExpanding
@@ -386,8 +381,6 @@ def resizeImageWithQT(src, width, height, keepAspectRatio=True, expand=True):
         else:
             flag = QtCore.Qt.IgnoreAspectRatio
         pixmap_resized = pixmap.scaled(int(width), int(height), flag, QtCore.Qt.SmoothTransformation)
-    except:
-        pixmap_resized = None
     return pixmap_resized
 
 

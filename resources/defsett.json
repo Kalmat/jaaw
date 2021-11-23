@@ -1,7 +1,8 @@
 {
     "Available_modes": [
         "IMAGE",
-        "VIDEO"
+        "VIDEO",
+        "WEB"
     ],
     "mode": "IMAGE",
     "Available_img_modes": [
@@ -25,5 +26,14 @@
     "Comment2": "Image to show when in IMAGE mode, and FIXED",
     "img": "resources/jaaw.png",
     "Comment3": "Video to play when in VIDEO mode",
-    "video": ""
+    "video": "",
+    "Comment4": "Video to play when in VIDEO mode",
+    "Available_web_modes": [
+      "CHROME",
+      "BING",
+      "URL"
+    ],
+    "web_mode": "CHROME",
+    "url": "",
+    "last": ""
 }

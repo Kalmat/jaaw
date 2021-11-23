@@ -11,9 +11,8 @@ if "Windows" in platform.platform():
     import win32con
     import win32gui
 
-
-    def findWindowHandles(parent: int = None, window_class: str = None, title: str = None) -> List[int]:
-    # https://stackoverflow.com/questions/56973912/how-can-i-set-windows-10-desktop-background-with-smooth-transition
+    def findWindowHandlesB(parent: int = None, window_class: str = None, title: str = None) -> List[int]:
+        # https://stackoverflow.com/questions/56973912/how-can-i-set-windows-10-desktop-background-with-smooth-transition
 
         def _make_filter(class_name: str, title: str):
             """https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enumwindows"""
@@ -40,6 +39,22 @@ if "Windows" in platform.platform():
         except pywintypes.error:
             return []
 
+    def findWindowHandles(parent: int = None, window_class: str = None, title: str = None) -> List[int]:
+        # https://stackoverflow.com/questions/61151811/how-to-get-handle-for-a-specific-application-window-in-python-using-pywin32
+        # WARNING: Crashes when using QtWebEngineWidgets!!!!
+        thelist = []
+
+        def findit(hwnd, ctx):
+            if (not parent or (parent and parent == win32gui.GetParent(hwnd))) and \
+                    (not window_class or (window_class and window_class == win32gui.GetClassName(hwnd))) and \
+                    (not title or (title and title == win32gui.GetWindowText(hwnd))):
+                thelist.append(hwnd)
+
+        win32gui.EnumWindows(findit, None)
+        return thelist
+
+    def findWindowHandle(title):
+        return win32gui.FindWindowEx(0, 0, None, title)
 
     def sendBehind(name):
 
@@ -56,31 +71,26 @@ if "Windows" in platform.platform():
             return thelist
 
         # https://www.codeproject.com/Articles/856020/Draw-Behind-Desktop-Icons-in-Windows-plus
-        hWnd = findWindowHandles(title=name)
+        hWnd = findWindowHandle(name)
         progman = win32gui.FindWindow("Progman", None)
         win32gui.SendMessageTimeout(progman, 0x052C, 0, 0, win32con.SMTO_NORMAL, 1000)
         workerw = getWorkerW()
         if hWnd and workerw:
-            win32gui.SetParent(hWnd[0], workerw[0])
+            win32gui.SetParent(hWnd, workerw[0])
         return
-
 
     def getWallPaper():
         wp = win32gui.SystemParametersInfo(win32con.SPI_GETDESKWALLPAPER, 260, 0)
         return wp
 
-
     def setWallpaper(img=""):
         win32gui.SystemParametersInfo(win32con.SPI_SETDESKWALLPAPER, img, win32con.SPIF_UPDATEINIFILE | win32con.SPIF_SENDCHANGE)
-
 
     def closeWindow(hWnd):
         win32gui.PostMessage(hWnd, win32con.WM_CLOSE, 0, 0)
 
-
     def clearWindow(hWnd):
         win32gui.PostMessage(hWnd, win32con.WM_CLEAR, 0, 0)
-
 
     def refreshDesktop():
         # https://newbedev.com/how-to-refresh-reload-desktop
@@ -93,14 +103,11 @@ if "Windows" in platform.platform():
         if hWnd:
             win32gui.SendMessage(hWnd, 0x111, 0x7402, 0)
 
-
     def refreshDesktopB():
         win32gui.SendMessage(win32con.HWND_BROADCAST, win32con.WM_SETTINGCHANGE, 0, 1)
 
-
     def force_refresh():
         ctypes.windll.user32.UpdatePerUserSystemParameters(1)
-
 
     def enable_activedesktop():
         """https://stackoverflow.com/a/16351170"""
@@ -110,7 +117,6 @@ if "Windows" in platform.platform():
             ctypes.windll.user32.SendMessageTimeoutW(progman, *cryptic_params)
         except IndexError as e:
             raise WindowsError('Cannot enable Active Desktop') from e
-
 
     def toggleDesktopIcons():
 
@@ -136,7 +142,6 @@ elif "Linux" in platform.platform():
     ROOT = SCREEN.root
     # EWMH = ewmh.EWMH(_display=DISP, root=ROOT)
 
-
     def findWindowHandles(parent: int = None, window_class: str = None, title: str = None) -> List[int]:
 
         def getAllWindows(parent):
@@ -157,25 +162,20 @@ elif "Linux" in platform.platform():
             windows = getWindowsWithTitle(parent, title)
         else:
             windows = getAllWindows(parent)
-
         return windows
 
-
     def sendBehind(name):
-
         # gc = ROOT.create_gc(foreground=SCREEN.white_pixel, background=SCREEN.black_pixel)
-        win = findWindowHandles(name)
+        win = findWindowHandles(title=name)
         if win:
             win = win[0]
             # Doesn't fail, but doesn't work either
             win.reparent(ROOT, 0, 0)
 
-
     def getWallPaper():
         cmd = 'gsettings set org.gnome.desktop.background picture-uri ""'
         wp = subprocess.check_output(cmd, shell=True).decode(encoding="utf-8").strip()
         return wp
-
 
     def setWallpaper(img=""):
         cmd = 'gsettings set org.gnome.desktop.background picture-uri "%s"' % img
