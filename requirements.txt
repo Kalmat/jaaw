@@ -1,4 +1,4 @@
 PyQt5
+PyQtWebEngine
 ctypes
 xlib; sys_platform == 'linux'
-ewmh; sys_platform == 'linux'

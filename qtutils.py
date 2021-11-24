@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import requests
-import shutil
 import utils
 from PyQt5 import QtWidgets, QtCore, QtGui
 

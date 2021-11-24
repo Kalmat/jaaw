@@ -35,5 +35,6 @@
     ],
     "web_mode": "CHROME",
     "url": "",
-    "last": ""
+    "chrome_last": "",
+    "bing_last": ""
 }

@@ -4,8 +4,6 @@
 import os
 import random
 import time
-from os import listdir
-from os.path import isfile, join
 import json
 import sys
 import qtutils
@@ -16,27 +14,27 @@ from PyQt5 import QtWidgets, QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, Q
 import signal
 import traceback
 
-CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
-CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
-SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
-ICON_SELECTED = utils.resource_path("resources/tick.png")
-SETTINGS_FILE = "settings.json"
-DEFAULT_SETTINGS_FILE = utils.resource_path("resources/defsett.json")
+_CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
+_CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
+_SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
+_ICON_SELECTED = utils.resource_path("resources/tick.png")
+_SETTINGS_FILE = "settings.json"
+_DEFAULT_SETTINGS_FILE = utils.resource_path("resources/defsett.json")
 
-IMGMODE = "IMAGE"
-IMGFIXED = "FIXED"
-IMGCAROUSEL = "CAROUSEL"
-VIDMODE = "VIDEO"
-WEBMODE = "WEB"
-CHROMEMODE = "CHROME"
-BINGMODE = "BING"
-URLMODE = "URL"
+_IMGMODE = "IMAGE"
+_IMGFIXED = "FIXED"
+_IMGCAROUSEL = "CAROUSEL"
+_VIDMODE = "VIDEO"
+_WEBMODE = "WEB"
+_CHROMEMODE = "CHROME"
+_BINGMODE = "BING"
+_URLMODE = "URL"
 
-PLAY_WARNING = 0
-SETTINGS_WARNING = 1
-IMG_WARNING = 2
-FOLDER_WARNING = 3
-HELP_MSG = 4
+_PLAY_WARNING = 0
+_SETTINGS_WARNING = 1
+_IMG_WARNING = 2
+_FOLDER_WARNING = 3
+_HELP_MSG = 4
 
 
 class Window(QtWidgets.QMainWindow):
@@ -50,8 +48,8 @@ class Window(QtWidgets.QMainWindow):
         self.setupUi()
         self.xmax, self.ymax = qtutils.initDisplay(parent=self,
                                                    setAsWallpaper=True,
-                                                   icon=SYSTEM_ICON,
-                                                   caption=CAPTION)
+                                                   icon=_SYSTEM_ICON,
+                                                   caption=_CAPTION)
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
 
@@ -60,8 +58,8 @@ class Window(QtWidgets.QMainWindow):
         self.chrome = {"chromecast": []}
 
         if not self.loadSettings():
-            self.config["mode"] = IMGMODE
-            self.config["img_mode"] = IMGFIXED
+            self.config["mode"] = _IMGMODE
+            self.config["img_mode"] = _IMGFIXED
             self.config["img"] = self.currentWP
 
         self.menu = Config(self, self.config)
@@ -70,7 +68,7 @@ class Window(QtWidgets.QMainWindow):
         self.menu.showHelp.connect(self.showHelp)
         self.menu.show()
 
-        bkgutils.sendBehind(CAPTION)
+        bkgutils.sendBehind(_CAPTION)
         self.start()
 
     def setupUi(self):
@@ -118,17 +116,17 @@ class Window(QtWidgets.QMainWindow):
         ret = True
 
         try:
-            with open(SETTINGS_FILE, encoding='UTF-8') as file:
+            with open(_SETTINGS_FILE, encoding='UTF-8') as file:
                 self.config = json.load(file)
             self.loadSettingsValues()
 
         except:
             ret = False
-            with open(utils.resource_path(DEFAULT_SETTINGS_FILE), encoding='UTF-8') as file:
+            with open(utils.resource_path(_DEFAULT_SETTINGS_FILE), encoding='UTF-8') as file:
                 self.config = json.load(file)
             self.loadSettingsValues()
             self.img = self.currentWP
-            self.showWarning(SETTINGS_WARNING)
+            self.showWarning(_SETTINGS_WARNING)
 
         return ret
 
@@ -142,36 +140,37 @@ class Window(QtWidgets.QMainWindow):
         self.video = self.config["video"]
         self.webMode = self.config["web_mode"]
         self.url = self.config["url"]
-        self.last = self.config["last"]
+        self.chromeLast = self.config["bing_last"]
+        self.bingLast = self.config["bing_last"]
 
     def start(self):
 
-        if self.wallPaperMode == IMGMODE:
+        if self.wallPaperMode == _IMGMODE:
 
-            if self.imgMode == IMGCAROUSEL:
-                self.imgList = self.getImgInFolder(self.contentFolder)
+            if self.imgMode == _IMGCAROUSEL:
+                self.imgList = utils.getFilesInFolder(self.contentFolder, ("png", "jpg", "jpeg", "bmp"))
                 self.timer.start(self.imgPeriod * 1000)
                 self.loadNextImg()
 
-            elif self.imgMode == IMGFIXED:
+            elif self.imgMode == _IMGFIXED:
                 self.loadImg(self.img)
 
             else:
-                self.showWarning(SETTINGS_WARNING)
+                self.showWarning(_SETTINGS_WARNING)
 
-        elif self.wallPaperMode == VIDMODE:
+        elif self.wallPaperMode == _VIDMODE:
             self.loadVideo(utils.resource_path(self.video))
 
-        elif self.wallPaperMode == WEBMODE:
-            if self.webMode == CHROMEMODE:
+        elif self.wallPaperMode == _WEBMODE:
+            if self.webMode == _CHROMEMODE:
                 self.loadChrome()
-            elif self.webMode == BINGMODE:
+            elif self.webMode == _BINGMODE:
                 self.loadBing()
-            elif self.webMode == URLMODE:
+            elif self.webMode == _URLMODE:
                 self.loadWebPage(self.url)
 
         else:
-            self.showWarning(SETTINGS_WARNING)
+            self.showWarning(_SETTINGS_WARNING)
 
     @QtCore.pyqtSlot()
     def reloadSettings(self):
@@ -192,14 +191,14 @@ class Window(QtWidgets.QMainWindow):
             self.move(QtCore.QPoint(0, 0 + int((self.screen().size().height() - pixmap.height())/2)))
             self.bkg_label.show()
         else:
-            self.showWarning(IMG_WARNING)
+            self.showWarning(_IMG_WARNING)
 
     def loadNextImg(self):
         if self.imgList:
             self.loadImg(self.imgList[self.imgIndex])
             self.imgIndex = (self.imgIndex + 1) % len(self.imgList)
         else:
-            self.showWarning(FOLDER_WARNING)
+            self.showWarning(_FOLDER_WARNING)
 
     def loadVideo(self, video):
         self.playlist.clear()
@@ -216,8 +215,8 @@ class Window(QtWidgets.QMainWindow):
         filename = utils.resource_path("032k-8738jd7-00")
         current = time.strftime("%Y%m%d")
         found = True
-        if not os.path.isfile(filename) or self.last < current:
-            self.last = current
+        if not os.path.isfile(filename) or self.chromeLast < current:
+            self.chromeLast = current
             if not self.chrome["chromecast"]:
                 self.chrome = webutils.getChromecastImages()
             rand = random.Random()
@@ -235,14 +234,14 @@ class Window(QtWidgets.QMainWindow):
         if not found:
             filename = self.currentWP
         self.loadImg(filename)
-        self.menu.saveLast(self.last)
+        self.menu.saveLast(chrome=self.chromeLast)
 
     def loadBing(self):
         filename = utils.resource_path("032k-8738jd7-01")
         current = time.strftime("%Y%m%d")
         found = True
-        if not os.path.isfile(filename) or self.last < current:
-            self.last = current
+        if not os.path.isfile(filename) or self.bingLast < current:
+            self.bingLast = current
             image = webutils.getBingTodayImage()
             try:
                 webutils.download(image, filename)
@@ -262,7 +261,7 @@ class Window(QtWidgets.QMainWindow):
         if not found:
             filename = self.currentWP
         self.loadImg(filename)
-        self.menu.saveLast(self.last)
+        self.menu.saveLast(bing=self.bingLast)
 
     def loadWebPage(self, url):
         self.bkg_label.hide()
@@ -274,30 +273,19 @@ class Window(QtWidgets.QMainWindow):
         except:
             self.loadImg(self.currentWP)
 
-    def getImgInFolder(self, folder):
-        try:
-            files = [file for file in listdir(folder) if isfile(join(folder, file))]
-            imgList = []
-            for file in files:
-                if file.split(".")[-1].lower() in ("png", "jpg", "jpeg", "bmp"):
-                    imgList.append(join(folder, file))
-        except:
-            imgList = []
-        return imgList
-
     @QtCore.pyqtSlot()
     def showHelp(self):
-        self.showWarning(HELP_MSG)
+        self.showWarning(_HELP_MSG)
 
     def handlePlayError(self):
         self.playlist.clear()
         self.mediaPlayer.setPlaylist(self.playlist)
         self.videoWidget.hide()
-        self.showWarning(PLAY_WARNING)
+        self.showWarning(_PLAY_WARNING)
 
     def showWarning(self, msg):
 
-        if msg == SETTINGS_WARNING:
+        if msg == _SETTINGS_WARNING:
             self.loadImg(self.currentWP)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Configure your own settings and media to use as wallpaper\n"
@@ -306,7 +294,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
-        elif msg == IMG_WARNING:
+        elif msg == _IMG_WARNING:
             self.loadImg(self.currentWP)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported, moved or corrupted")
@@ -315,7 +303,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
-        elif msg == FOLDER_WARNING:
+        elif msg == _FOLDER_WARNING:
             self.loadImg(self.currentWP)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
@@ -325,7 +313,7 @@ class Window(QtWidgets.QMainWindow):
             self.timer.stop()
             self.msgBox.exec_()
 
-        elif msg == PLAY_WARNING:
+        elif msg == _PLAY_WARNING:
             self.loadImg(self.currentWP)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported, moved or corrupted")
@@ -335,7 +323,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
-        elif msg == HELP_MSG:
+        elif msg == _HELP_MSG:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
             self.msgBox.setText("Right-click on the Jaaw! icon at the bottom-right of your screen"
                                 " to enter configuration settings")
@@ -373,7 +361,7 @@ class Config(QtWidgets.QWidget):
 
     def setupUI(self):
 
-        self.iconSelected = QtGui.QIcon(ICON_SELECTED)
+        self.iconSelected = QtGui.QIcon(_ICON_SELECTED)
         self.iconNotSelected = QtGui.QIcon()
 
         self.contextMenu = QtWidgets.QMenu(self)
@@ -418,8 +406,9 @@ class Config(QtWidgets.QWidget):
         self.videoDialog.setWindowTitle("Select video")
         self.videoDialog.setNameFilter("Video Files (*.flv *.ts *.mts *.avi *.wmv)")
 
-        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(CONFIG_ICON), self)
+        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(_CONFIG_ICON), self)
         self.trayIcon.setToolTip("Jaaw!")
+
         self.trayIcon.setContextMenu(self.contextMenu)
         self.trayIcon.show()
 
@@ -464,21 +453,21 @@ class Config(QtWidgets.QWidget):
         self.chromeAct.setIcon(self.iconNotSelected)
         self.bingAct.setIcon(self.iconNotSelected)
         self.uwebAct.setIcon(self.iconNotSelected)
-        if self.config["mode"] == IMGMODE:
+        if self.config["mode"] == _IMGMODE:
             self.imgAct.setIcon(self.iconSelected)
-            if self.config["img_mode"] == IMGFIXED:
+            if self.config["img_mode"] == _IMGFIXED:
                 self.fimgAct.setIcon(self.iconSelected)
-            elif self.config["img_mode"] == IMGCAROUSEL:
+            elif self.config["img_mode"] == _IMGCAROUSEL:
                 self.cimgAct.setIcon(self.iconSelected)
-        elif self.config["mode"] == VIDMODE:
+        elif self.config["mode"] == _VIDMODE:
             self.videoAct.setIcon(self.iconSelected)
-        elif self.config["mode"] == WEBMODE:
+        elif self.config["mode"] == _WEBMODE:
             self.webAct.setIcon(self.iconSelected)
-            if self.config["web_mode"] == CHROMEMODE:
+            if self.config["web_mode"] == _CHROMEMODE:
                 self.chromeAct.setIcon(self.iconSelected)
-            elif self.config["web_mode"] == BINGMODE:
+            elif self.config["web_mode"] == _BINGMODE:
                 self.bingAct.setIcon(self.iconSelected)
-            elif self.config["web_mode"] == URLMODE:
+            elif self.config["web_mode"] == _URLMODE:
                 self.uwebAct.setIcon(self.iconSelected)
         self.contextMenu.update()
 
@@ -490,8 +479,8 @@ class Config(QtWidgets.QWidget):
 
         if fileName:
             self.config["img"] = fileName
-            self.config["mode"] = IMGMODE
-            self.config["img_mode"] = IMGFIXED
+            self.config["mode"] = _IMGMODE
+            self.config["img_mode"] = _IMGFIXED
             self.updateCheck()
             self.saveSettings()
 
@@ -503,8 +492,8 @@ class Config(QtWidgets.QWidget):
 
         if fileName:
             self.config["folder"] = fileName
-            self.config["mode"] = IMGMODE
-            self.config["img_mode"] = IMGCAROUSEL
+            self.config["mode"] = _IMGMODE
+            self.config["img_mode"] = _IMGCAROUSEL
             self.updateCheck()
             self.saveSettings()
 
@@ -516,26 +505,26 @@ class Config(QtWidgets.QWidget):
 
         if fileName:
             self.config["video"] = fileName
-            self.config["mode"] = VIDMODE
+            self.config["mode"] = _VIDMODE
             self.updateCheck()
             self.saveSettings()
 
     def openChromecast(self):
-        self.config["mode"] = WEBMODE
-        self.config["web_mode"] = CHROMEMODE
+        self.config["mode"] = _WEBMODE
+        self.config["web_mode"] = _CHROMEMODE
         self.updateCheck()
         self.saveSettings()
 
     def openBing(self):
-        self.config["mode"] = WEBMODE
-        self.config["web_mode"] = BINGMODE
+        self.config["mode"] = _WEBMODE
+        self.config["web_mode"] = _BINGMODE
         self.updateCheck()
         self.saveSettings()
 
     def openURL(self):
         self.urlDialog.close()
-        self.config["mode"] = WEBMODE
-        self.config["web_mode"] = URLMODE
+        self.config["mode"] = _WEBMODE
+        self.config["web_mode"] = _URLMODE
         self.config["url"] = self.urlEdit.text()
         self.updateCheck()
         self.saveSettings()
@@ -549,15 +538,18 @@ class Config(QtWidgets.QWidget):
     def saveSettings(self, reload=True):
 
         try:
-            with open(SETTINGS_FILE, "w", encoding='UTF-8') as file:
+            with open(_SETTINGS_FILE, "w", encoding='UTF-8') as file:
                 json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
             if reload:
                 self.reloadSettings.emit()
         except:
             print("Error saving Settings. Your changes will not take effect.")
 
-    def saveLast(self, last):
-        self.config["last"] = last
+    def saveLast(self, chrome="", bing=""):
+        if chrome:
+            self.config["chrome_last"] = chrome
+        if bing:
+            self.config["bing_last"] = bing
         self.saveSettings(reload=False)
 
 

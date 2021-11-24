@@ -356,3 +356,16 @@ def to_float(s, dec=1):
         return round(float(num), dec)
     except Exception:
         return 0.0
+
+
+def getFilesInFolder(folder, extensions):
+    try:
+        files = [file for file in os.listdir(folder) if os.path.isfile(os.path.join(folder, file))]
+        fileList = []
+        for file in files:
+            if not extensions or file.split(".")[-1].lower() in extensions:
+                fileList.append(os.path.join(folder, file))
+    except:
+        fileList = []
+    return fileList
+
