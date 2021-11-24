@@ -1,9 +1,30 @@
-import os
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
+import os
 from bs4 import BeautifulSoup
 import requests
 import shutil
 import traceback
+
+
+def getChromecastImages():
+
+    images = {}
+
+    URL = "https://raw.githubusercontent.com/dconnolly/chromecast-backgrounds/master/backgrounds.json"
+    headers = {'Accept-Encoding': 'identity'}
+    try:
+        with requests.get(URL, timeout=20, headers=headers) as response:
+            page = response.json()
+    except:
+        print("Error getting HTML page from:", URL)
+        print(traceback.format_exc())
+        return images
+
+    images["chromecast"] = page
+
+    return images
 
 
 def getBingImages():

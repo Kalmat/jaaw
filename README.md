@@ -15,13 +15,14 @@ Run it, and right-click on the Jaaw! tray icon to access options menu:
 * Image / Single image - Select an image as static Wallpaper
 * Image / Folder - Select a folder containing all images you want to show in carousel mode
 * Video - Select a video to show as wallpaper... looks awesome!
+* Web / Daily random Chromecast images (links from: https://bing.gifposter.com)
+* Web / Daily Bing images (links from: https://github.com/dconnolly/chromecast-backgrounds/blob/master/backgrounds.json)
+* Web / Enter any URL of your choice and use it as Wallpaper
 * Help
 * Quit
 
 #### IMPORTANT
 
+This module stores no images from any web site or source of any kind. It just uses public links to show images as your wallpaper
+
 The application and tray icons are... well, horrible. I have no graphic design capabilities at all. Download or design your own! Don't forget to place them on "resources" folder and rename them accordingly
-
-### PENDING
-
-* Refactor bkgutils (win32) functions

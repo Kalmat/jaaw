@@ -79,6 +79,10 @@ if "Windows" in platform.platform():
             win32gui.SetParent(hWnd, workerw[0])
         return
 
+    def sendFront(name, parent):
+        hWnd = findWindowHandle(name)
+        win32gui.SetParent(hWnd, parent)
+
     def getWallPaper():
         wp = win32gui.SystemParametersInfo(win32con.SPI_GETDESKWALLPAPER, 260, 0)
         return wp
@@ -169,8 +173,14 @@ elif "Linux" in platform.platform():
         win = findWindowHandles(title=name)
         if win:
             win = win[0]
+            w = DISP.create_resource_object('window', win)
             # Doesn't fail, but doesn't work either
-            win.reparent(ROOT, 0, 0)
+            w.reparent(ROOT, 0, 0)
+
+    def sendFront(name, parent):
+        win = findWindowHandles(title=name)
+        w = DISP.create_resource_object('window', win)
+        w.reparent(parent, 0, 0)
 
     def getWallPaper():
         cmd = 'gsettings set org.gnome.desktop.background picture-uri ""'

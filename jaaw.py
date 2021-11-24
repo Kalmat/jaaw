@@ -1,30 +1,27 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import os
 import random
 import time
-import urllib
 from os import listdir
 from os.path import isfile, join
 import json
 import sys
-from urllib.parse import quote
-
 import qtutils
 import bkgutils
 import utils
+import webutils
 from PyQt5 import QtWidgets, QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWebEngineWidgets
 import signal
 import traceback
 
-import webutils
-
 CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
 CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
 SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
+ICON_SELECTED = utils.resource_path("resources/tick.png")
 SETTINGS_FILE = "settings.json"
 DEFAULT_SETTINGS_FILE = utils.resource_path("resources/defsett.json")
-CHROME_FILE = utils.resource_path("resources/chromecast.json")
 
 IMGMODE = "IMAGE"
 IMGFIXED = "FIXED"
@@ -39,10 +36,7 @@ PLAY_WARNING = 0
 SETTINGS_WARNING = 1
 IMG_WARNING = 2
 FOLDER_WARNING = 3
-HELP_WARNING = 4
-
-# INDICATOR = u'\u2713'  # UTF "tick" character
-ICON_SELECTED = utils.resource_path("resources/tick.png")
+HELP_MSG = 4
 
 
 class Window(QtWidgets.QMainWindow):
@@ -51,6 +45,7 @@ class Window(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self, *args, **kwargs)
 
         self.currentWP = utils.resource_path(bkgutils.getWallPaper())
+        self.parent = self.parent()
 
         self.setupUi()
         self.xmax, self.ymax = qtutils.initDisplay(parent=self,
@@ -80,11 +75,9 @@ class Window(QtWidgets.QMainWindow):
 
     def setupUi(self):
 
-        self.defaultStyleSheet = self.styleSheet()
         screenSize = qtutils.getScreenSize()
 
         self.widget = QtWidgets.QWidget(self)
-        self.widget.setStyleSheet("background-color:black")
         self.myLayout = QtWidgets.QHBoxLayout()
         self.myLayout.setContentsMargins(0, 0, 0, 0)
 
@@ -108,9 +101,9 @@ class Window(QtWidgets.QMainWindow):
 
         # https://recursospython.com/codigos-de-fuente/navegador-web-simple-con-pyqt-5/
         self.webView = QtWebEngineWidgets.QWebEngineView()
-        self.webView.setStyleSheet(self.defaultStyleSheet)
         self.webView.hide()
-        QtWebEngineWidgets.QWebEnginePage().setAudioMuted(True)
+        frame = self.webView.page()
+        frame.setAudioMuted(True)
 
         self.myLayout.addWidget(self.bkg_label)
         self.myLayout.addWidget(self.videoWidget)
@@ -150,8 +143,6 @@ class Window(QtWidgets.QMainWindow):
         self.webMode = self.config["web_mode"]
         self.url = self.config["url"]
         self.last = self.config["last"]
-        # https://bing.gifposter.com/
-        # https://github.com/dconnolly/chromecast-backgrounds/blob/master/backgrounds.json
 
     def start(self):
 
@@ -222,21 +213,19 @@ class Window(QtWidgets.QMainWindow):
         self.videoWidget.setGeometry(QtCore.QRect(0, 0, self.screen().size().width(), self.screen().size().height()))
 
     def loadChrome(self):
-        filename = utils.resource_path("cwptoday.jpg")
+        filename = utils.resource_path("032k-8738jd7-00")
         current = time.strftime("%Y%m%d")
         found = True
         if not os.path.isfile(filename) or self.last < current:
             self.last = current
             if not self.chrome["chromecast"]:
-                with open(CHROME_FILE, encoding='UTF-8') as file:
-                    self.chrome = json.load(file)
+                self.chrome = webutils.getChromecastImages()
             rand = random.Random()
             index = rand.randint(0, len(self.chrome["chromecast"]))
             found = False
             tries = 0
             while not found and tries < 10:
                 img = self.chrome["chromecast"][index]["url"]
-                # img = urllib.parse.quote(img)
                 try:
                     webutils.download(img, filename)
                     found = True
@@ -249,7 +238,7 @@ class Window(QtWidgets.QMainWindow):
         self.menu.saveLast(self.last)
 
     def loadBing(self):
-        filename = utils.resource_path("bwptoday.jpg")
+        filename = utils.resource_path("032k-8738jd7-01")
         current = time.strftime("%Y%m%d")
         found = True
         if not os.path.isfile(filename) or self.last < current:
@@ -298,7 +287,7 @@ class Window(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def showHelp(self):
-        self.showWarning(HELP_WARNING)
+        self.showWarning(HELP_MSG)
 
     def handlePlayError(self):
         self.playlist.clear()
@@ -346,7 +335,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
-        elif msg == HELP_WARNING:
+        elif msg == HELP_MSG:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
             self.msgBox.setText("Right-click on the Jaaw! icon at the bottom-right of your screen"
                                 " to enter configuration settings")
@@ -408,13 +397,7 @@ class Config(QtWidgets.QWidget):
         self.webAct = self.contextMenu.addMenu("Web")
         self.chromeAct = self.webAct.addAction("Daily Chromecast Wallpaper", self.openChromecast)
         self.bingAct = self.webAct.addAction("Daily Bing Wallpaper", self.openBing)
-        self.uwebAct = self.webAct.addMenu("Enter URL")
-        urlAction = QtWidgets.QWidgetAction(self.contextMenu)
-        self.urlEdit = QtWidgets.QLineEdit(self.contextMenu)
-        self.urlEdit.setFixedWidth(300)
-        self.urlEdit.editingFinished.connect(self.openURL)
-        urlAction.setDefaultWidget(self.urlEdit)
-        self.uwebAct.addAction(urlAction)
+        self.uwebAct = self.webAct.addAction("Enter URL", self.showUrlDialog)
 
         self.contextMenu.addSeparator()
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
@@ -439,6 +422,23 @@ class Config(QtWidgets.QWidget):
         self.trayIcon.setToolTip("Jaaw!")
         self.trayIcon.setContextMenu(self.contextMenu)
         self.trayIcon.show()
+
+        self.urlDialog = QtWidgets.QDialog()
+        self.urlDialog.setWindowTitle("Enter URL")
+        self.urlDialog.setStyleSheet("background-color: #333; color: #ddd;")
+        dialogLayout = QtWidgets.QHBoxLayout()
+        self.urlEdit = QtWidgets.QLineEdit()
+        self.urlEdit.setMinimumWidth(300)
+        self.urlButton = QtWidgets.QPushButton("Go")
+        self.urlButton.setStyleSheet("background-color: #333; border:1px solid #ddd;; color: #ddd;")
+        self.urlButton.setMinimumWidth(40)
+        self.urlButton.clicked.connect(self.openURL)
+        dialogLayout.addWidget(self.urlEdit)
+        dialogLayout.addWidget(self.urlButton)
+        self.urlDialog.setLayout(dialogLayout)
+
+    def showUrlDialog(self):
+        self.urlDialog.show()
 
     def addOptions(self, option, text, value, selected=False):
         act = option.addAction(text, (lambda: self.execAction(text, value)))
@@ -533,6 +533,7 @@ class Config(QtWidgets.QWidget):
         self.saveSettings()
 
     def openURL(self):
+        self.urlDialog.close()
         self.config["mode"] = WEBMODE
         self.config["web_mode"] = URLMODE
         self.config["url"] = self.urlEdit.text()
