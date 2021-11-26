@@ -370,7 +370,7 @@ def createImgFromText(text, font, bcolor=QtGui.QColor(QtCore.Qt.black), fcolor=Q
 def resizeImageWithQT(src, width, height, keepAspectRatio=True, expand=True):
     pixmap_resized = None
     pixmap = QtGui.QPixmap(utils.resource_path(src))
-    if pixmap:
+    if not pixmap.isNull():
         if keepAspectRatio:
             if expand:
                 flag = QtCore.Qt.KeepAspectRatioByExpanding

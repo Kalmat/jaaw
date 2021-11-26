@@ -175,25 +175,20 @@ elif "Linux" in platform.platform():
             w = DISP.create_resource_object('window', win)
 
             # https://stackoverflow.com/questions/58885803/can-i-use-net-wm-window-type-dock-ewhm-extension-in-openbox
-            # Does not sends current window below. It does with the new window, but not  behind the desktop icons
+            # Does not sends current window below. It does with the new window, but not behind the desktop icons
             # w.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
-            #                              32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
-            #                              Xlib.X.PropModeReplace)
+            #                   32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
+            #                   Xlib.X.PropModeReplace)
             # w.map()
-            # DISP.flush()
-            # DISP.next_event()
-            # DISP.next_event()
 
             newWin = ROOT.create_window(0, 0, 500, 500, 1, SCREEN.root_depth,
-                                               background_pixel=SCREEN.black_pixel,
-                                               event_mask=Xlib.X.ExposureMask | Xlib.X.KeyPressMask)
+                                        background_pixel=SCREEN.black_pixel,
+                                        event_mask=Xlib.X.ExposureMask | Xlib.X.KeyPressMask)
             newWin.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
                                    32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
                                    Xlib.X.PropModeReplace)
             newWin.map()
-            DISP.flush()
-            # DISP.next_event()
-            # DISP.next_event()
+            newWin.reparent(ROOT, 0, 0)
             w.reparent(newWin, 0, 0)
 
     def x11SendBehind(name):
@@ -249,12 +244,10 @@ elif "Linux" in platform.platform():
             data = (ctypes.c_ubyte * len(str(desktop)))()
 
             newWin = x11.XCreateSimpleWindow(m_display, m_root_win, ctypes.c_uint(0), ctypes.c_uint(0), ctypes.c_uint(1920), ctypes.c_uint(1080), ctypes.c_uint(0), ctypes.c_ulong(0), SCREEN.white_pixel)  # SCREEN.white_pixel) # WhitePixel(m_display, DefaultScreen(m_display)))
-            # x11.XChangeProperty(m_display, newWin, window_type, Xlib.Xatom.ATOM, ctypes.c_int(32), Xlib.X.PropModeReplace, data, ctypes.c_int(1))
+            x11.XChangeProperty(m_display, newWin, window_type, Xlib.Xatom.ATOM, ctypes.c_int(32), Xlib.X.PropModeReplace, data, ctypes.c_int(1))
             x11.XClearWindow(m_display, newWin)
             x11.XMapWindow(m_display, newWin)
-            x11.XReparentWindow(m_display, hwnd, newWin)
 
-            x11.XUnmapWindow(m_display, hwnd)
             x11.XChangeProperty(m_display, hwnd, window_type, Xlib.Xatom.ATOM, ctypes.c_int(32), Xlib.X.PropModeReplace, data, ctypes.c_int(1))
             x11.XClearWindow(m_display, hwnd)
             x11.XMapWindow(m_display, hwnd)
