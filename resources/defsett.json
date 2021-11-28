@@ -10,9 +10,11 @@
         "CAROUSEL"
     ],
     "img_mode": "FIXED",
-    "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
-    "folder": "",
-    "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
+    "Comment1": "Image to show when in IMAGE mode, and FIXED",
+    "img": "resources/jaaw.png",
+    "Comment2": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
+    "folder": ".",
+    "Comment3": "Time to show next image when in CAROUSEL mode, in seconds",
     "Available_periods": {
             "30 sec": 30,
             "1 min": 60,
@@ -23,23 +25,22 @@
             "1 hour": 3600
     },
     "img_period": 120,
-    "Comment2": "Image to show when in IMAGE mode, and FIXED",
-    "img": "resources/jaaw.png",
-    "Comment3": "Video to play when in VIDEO mode",
     "Available_video_modes": [
         "LOCAL",
         "YOUTUBE"
     ],
     "video_mode": "YOUTUBE",
-    "video": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/Bioshock Rapture.wmv",
-    "yt_url": "https://www.youtube.com/embed/yEYHDsYuhzc?autoplay=1&loop=1&playlist=yEYHDsYuhzc&mute=1&controls=0&rel=0",
     "Comment4": "Video to play when in VIDEO mode",
+    "video": "",
+    "Comment5": "Youtube video. Notice the unintelligible part between last '/' and '?'",
+    "yt_url": "https://www.youtube.com/embed/BHACKCNDMW8?autoplay=1&loop=1&playlist=BHACKCNDMW8&mute=1&controls=0&rel=0&vq=hd720",
     "Available_web_modes": [
       "CHROME",
       "BING",
       "URL"
     ],
     "web_mode": "URL",
+    "Comment6": "URL to show as wallpaper. You won't be able to interact (click or write anything)",
     "url": "https://nasa.gov",
     "chrome_last": "",
     "bing_last": ""

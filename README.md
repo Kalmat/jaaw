@@ -14,10 +14,11 @@ Run it, and right-click on the Jaaw! tray icon to access options menu:
 
 * Image / Single image - Select an image as static Wallpaper
 * Image / Folder - Select a folder containing all images you want to show in carousel mode
-* Video - Select a video to show as wallpaper... looks awesome!
+* Video / Local - Select a local video file to show as wallpaper... looks awesome!
+* Video / YouTube - YES! Enter a YT video reference and play it in the background!!! (e.g. OhBo1A8atuA, BHACKCNDMW8, lM02vNMRRB0, bx-0YlFprqc, msnYBMdaB08, _hHwz1UWJmI)
 * Web / Daily random Chromecast images (links from: https://bing.gifposter.com)
 * Web / Daily Bing images (links from: https://github.com/dconnolly/chromecast-backgrounds/blob/master/backgrounds.json)
-* Web / Enter any URL of your choice and use it as Wallpaper
+* Web / Enter any URL of your choice and use
 * Help
 * Quit
 

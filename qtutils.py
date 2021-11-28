@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import platform
 import utils
 from PyQt5 import QtWidgets, QtCore, QtGui
 
@@ -8,7 +9,10 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False, fullScreen=False, frameless=False,
                 transparentBkg=False, opacity=1, caption=None, icon=None, aot=False, aob=False):
 
-    parent.setWindowTitle(caption)
+    if caption:
+        parent.setWindowTitle(caption)
+    if icon:
+        parent.setWindowIcon(QtGui.QIcon(utils.resource_path(icon)))
 
     xmax, ymax = size
     screen = QtWidgets.QApplication.primaryScreen()
@@ -16,38 +20,37 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
 
     if xmax >= screenSize.width() or ymax >= screenSize.height() or setAsWallpaper or fullScreen:
         if setAsWallpaper:
-            parent.setWindowFlags(QtCore.Qt.WindowStaysOnBottomHint | QtCore.Qt.FramelessWindowHint)
+            if "Linux" in platform.platform():
+                parent.setAttribute(QtCore.Qt.WA_X11NetWmWindowTypeDesktop)
+            parent.setFocusPolicy(QtCore.Qt.NoFocus)
+            parent.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+            parent.setAttribute(QtCore.Qt.WA_InputMethodTransparent)
+            parent.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
+            parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnBottomHint | QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus)
         else:
-            parent.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        parent.showFullScreen()
+            parent.showFullScreen()
         xmax, ymax = screenSize.width(), screenSize.height()
     else:
         if frameless:
-            parent.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+            parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint)
         if pos[0] is not None and pos[1] is not None:
             x, y = pos
             parent.move(QtCore.QPoint(int(x), int(y)))
         parent.setFixedSize(xmax, ymax)
 
-    if opacity != 1 and not transparentBkg:
-        parent.setWindowOpacity(opacity)
+    if aot:
+        flags = parent.windowFlags() | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint
+        parent.setWindowFlags(flags)
+    elif aob and not setAsWallpaper:
+        flags = parent.windowFlags() | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnBottomHint
+        parent.setWindowFlags(flags)
 
     if transparentBkg:
         parent.setAttribute(QtCore.Qt.WA_NoSystemBackground, True)
         parent.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-        parent.setWindowFlags(parent.windowFlags() | QtCore.Qt.FramelessWindowHint)
-
-    if caption:
-        parent.setWindowTitle(caption)
-    if icon:
-        parent.setWindowIcon(QtGui.QIcon(utils.resource_path(icon)))
-
-    if aot:
-        flags = parent.windowFlags() | QtCore.Qt.WindowStaysOnTopHint
-        parent.setWindowFlags(flags)
-    elif aob and not setAsWallpaper:
-        flags = parent.windowFlags() | QtCore.Qt.WindowStaysOnBottomHint
-        parent.setWindowFlags(flags)
+        parent.setWindowFlags(parent.windowFlags() | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint)
+    elif opacity != 1 and not transparentBkg:
+        parent.setWindowOpacity(opacity)
 
     return xmax, ymax
 

@@ -1,10 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import os
 import platform
 import subprocess
 from typing import List
 import ctypes
+
+import utils
 
 if "Windows" in platform.platform():
     import pywintypes
@@ -83,9 +86,9 @@ if "Windows" in platform.platform():
         hWnd = findWindowHandle(name)
         win32gui.SetParent(hWnd, parent)
 
-    def getWallPaper():
+    def getWallpaper():
         wp = win32gui.SystemParametersInfo(win32con.SPI_GETDESKWALLPAPER, 260, 0)
-        return wp
+        return utils.resource_path(wp)
 
     def setWallpaper(img=""):
         win32gui.SystemParametersInfo(win32con.SPI_SETDESKWALLPAPER, img, win32con.SPIF_UPDATEINIFILE | win32con.SPIF_SENDCHANGE)
@@ -139,6 +142,7 @@ elif "Linux" in platform.platform():
     import Xlib
     import Xlib.X
     import Xlib.display
+    import pyautogui
 
     DISP = Xlib.display.Display()
     SCREEN = DISP.screen()
@@ -168,12 +172,12 @@ elif "Linux" in platform.platform():
         return windows
 
     def sendBehind(name):
+        pyautogui.leftClick(x=1, y=1)  # just clicking on the desktop, the window goes to bottom!
         # gc = ROOT.create_gc(foreground=SCREEN.white_pixel, background=SCREEN.black_pixel)
-        win = findWindowHandles(title=name)
-        if win:
-            win = win[0]
-            w = DISP.create_resource_object('window', win)
-
+        # win = findWindowHandles(title=name)
+        # if win:
+        #     win = win[0]
+        #     w = DISP.create_resource_object('window', win)
             # https://stackoverflow.com/questions/58885803/can-i-use-net-wm-window-type-dock-ewhm-extension-in-openbox
             # Does not sends current window below. It does with the new window, but not behind the desktop icons
             # w.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
@@ -181,15 +185,15 @@ elif "Linux" in platform.platform():
             #                   Xlib.X.PropModeReplace)
             # w.map()
 
-            newWin = ROOT.create_window(0, 0, 500, 500, 1, SCREEN.root_depth,
-                                        background_pixel=SCREEN.black_pixel,
-                                        event_mask=Xlib.X.ExposureMask | Xlib.X.KeyPressMask)
-            newWin.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
-                                   32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
-                                   Xlib.X.PropModeReplace)
-            newWin.map()
-            newWin.reparent(ROOT, 0, 0)
-            w.reparent(newWin, 0, 0)
+            # newWin = ROOT.create_window(0, 0, 500, 500, 1, SCREEN.root_depth,
+            #                             background_pixel=SCREEN.black_pixel,
+            #                             event_mask=Xlib.X.ExposureMask | Xlib.X.KeyPressMask)
+            # newWin.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
+            #                        32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
+            #                        Xlib.X.PropModeReplace)
+            # newWin.map()
+            # newWin.reparent(ROOT, 0, 0)
+            # w.reparent(newWin, 0, 0)
 
     def x11SendBehind(name):
         x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
@@ -258,11 +262,50 @@ elif "Linux" in platform.platform():
         w = DISP.create_resource_object('window', win)
         w.reparent(parent, 0, 0)
 
-    def getWallPaper():
+    def getWallpaper():
         cmd = 'gsettings set org.gnome.desktop.background picture-uri ""'
         wp = subprocess.check_output(cmd, shell=True).decode(encoding="utf-8").strip()
-        return wp
+        return utils.resource_path(wp)
 
     def setWallpaper(img=""):
         cmd = 'gsettings set org.gnome.desktop.background picture-uri "%s"' % img
         subprocess.Popen(cmd, shell=True)
+
+elif "macOS" in platform.platform():
+    import AppKit
+    import Quartz
+
+    def sendBehind(name):
+        w = None
+        for win in AppKit.NSApp().orderedWindows():
+            w = win
+            break
+        if w:
+            # https://stackoverflow.com/questions/4982584/how-do-i-draw-the-desktop-on-mac-os-x
+            w.setLevel_(Quartz.kCGDesktopWindowLevel - 1)
+            w.setCollectionBehavior_(Quartz.NSWindowCollectionBehaviorCanJoinAllSpaces |
+                 Quartz.NSWindowCollectionBehaviorStationary |
+                 Quartz.NSWindowCollectionBehaviorIgnoresCycle)
+
+    def getWallpaper():
+        # https://stackoverflow.com/questions/14099363/get-the-current-wallpaper-in-cocoa
+        sharedSpace = AppKit.NSWorkspace.sharedWorkspace()
+        mainScreen = AppKit.NSScreen.mainScreen()
+
+        imageURL = sharedSpace.desktopImageURLForScreen_(mainScreen)
+        return imageURL
+
+    def setWallpaper(imageURL):
+        # https://stackoverflow.com/questions/65936437/change-macos-background-picture-with-adapt-to-screen-parameter-in-python
+        # Use this to convert a "normal" image into a macOS wallpaper type (NSURL)
+        # imageURL = Foundation.NSURL.fileURLWithPath_(img)
+        sharedSpace = AppKit.NSWorkspace.sharedWorkspace()
+        mainScreen = AppKit.NSScreen.mainScreen()
+        sharedSpace.setDesktopImageURL_forScreen_options_error_(imageURL, mainScreen, None, None)
+
+        # Use this to change image scaling and other options
+        # fillColor = AppKit.NSColor.darkGrayColor()
+        # optDict = Foundation.NSDictionary.dictionaryWithObjects_forKeys_([AppKit.NSImageScaleAxesIndependently, fillColor],
+        #                                                       [AppKit.NSWorkspaceDesktopImageScalingKey,
+        #                                                        AppKit.NSWorkspaceDesktopImageFillColorKey])
+        # sharedSpace.setDesktopImageURL_forScreen_options_error_(img, mainScreen, optDict, None)

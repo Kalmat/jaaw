@@ -1,4 +1,8 @@
 PyQt5
 PyQtWebEngine
 ctypes
+requests
+bs4
 xlib; sys_platform == 'linux'
+pyautogui; sys_platform == 'linux'
+pyobjc; sys_platform == 'darwin'

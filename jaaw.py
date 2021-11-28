@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import platform
 import random
 import time
 import json
@@ -44,7 +45,7 @@ class Window(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         QtWidgets.QMainWindow.__init__(self, *args, **kwargs)
 
-        self.currentWP = utils.resource_path(bkgutils.getWallPaper())
+        self.currentWP = bkgutils.getWallpaper()
         self.parent = self.parent()
 
         self.setupUi()
@@ -70,23 +71,23 @@ class Window(QtWidgets.QMainWindow):
         self.menu.showHelp.connect(self.showHelp)
         self.menu.show()
 
-        bkgutils.sendBehind(_CAPTION)
+        if "Windows" in platform.platform() or "Linux" in platform.platform():
+            bkgutils.sendBehind(_CAPTION)
         self.start()
 
     def setupUi(self):
 
-        self.setStyleSheet("background-color:transparent")
         screenSize = qtutils.getScreenSize()
+        self.setGeometry(0, 0, screenSize.width(), screenSize.height())
+        self.setStyleSheet("background-color:transparent")
 
         self.widget = QtWidgets.QWidget(self)
         self.widget.setGeometry(0, 0, screenSize.width(), screenSize.height())
-        self.widget.setStyleSheet("background-color:transparent")
         self.myLayout = QtWidgets.QHBoxLayout()
         self.myLayout.setContentsMargins(0, 0, 0, 0)
 
         self.bkg_label = QtWidgets.QLabel()
         self.bkg_label.hide()
-        self.setStyleSheet("background-color:transparent")
         self.bkg_label.setGeometry(0, 0, screenSize.width(), screenSize.height())
         self.bkg_label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
@@ -99,17 +100,14 @@ class Window(QtWidgets.QMainWindow):
         self.playlist.setPlaybackMode(QtMultimedia.QMediaPlaylist.CurrentItemInLoop)
         self.videoWidget = QtMultimediaWidgets.QVideoWidget()
         self.videoWidget.hide()
-        self.setStyleSheet("background-color:transparent")
         self.videoWidget.setGeometry(0, 0, screenSize.width(), screenSize.height())
         self.mediaPlayer.setVideoOutput(self.videoWidget)
         self.mediaPlayer.error.connect(self.handlePlayError)
 
-        # https://recursospython.com/codigos-de-fuente/navegador-web-simple-con-pyqt-5/
         self.webView = QtWebEngineWidgets.QWebEngineView()
         self.webView.hide()
         frame = self.webView.page()
         frame.setAudioMuted(True)
-        self.webView.setStyleSheet("background-color:transparent")
         self.webView.setGeometry(0, 0, screenSize.width(), screenSize.height())
 
         self.myLayout.addWidget(self.bkg_label)
@@ -192,21 +190,25 @@ class Window(QtWidgets.QMainWindow):
         self.loadSettings()
         self.start()
 
-    def loadImg(self, img, keepAspect=True, expand=True):
-        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
-        if pixmap:
-            self.bkg_label.clear()
-            self.mediaPlayer.stop()
-            self.playlist.clear()
-            self.mediaPlayer.setPlaylist(self.playlist)
-            self.bkg_label.setPixmap(pixmap)
-            self.videoWidget.hide()
-            self.webView.stop()
-            self.webView.hide()
-            self.move(QtCore.QPoint(0, 0 + int((self.screen().size().height() - pixmap.height())/2)))
-            self.bkg_label.show()
+    def loadImg(self, img, keepAspect=True, expand=True, fallBack=True):
+        if "macOS" in platform.platform() and img == self.currentWP:
+            bkgutils.setWallpaper(img)
         else:
-            self.showWarning(_IMG_WARNING)
+            pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
+            if pixmap:
+                self.bkg_label.clear()
+                self.mediaPlayer.stop()
+                self.playlist.clear()
+                self.mediaPlayer.setPlaylist(self.playlist)
+                self.bkg_label.setPixmap(pixmap)
+                self.videoWidget.hide()
+                self.webView.stop()
+                self.webView.hide()
+                self.move(QtCore.QPoint(0, 0 + int((self.screen().size().height() - pixmap.height())/2)))
+                self.bkg_label.show()
+            elif fallBack:
+                self.showWarning(_IMG_WARNING)
+
 
     def loadNextImg(self):
         if self.imgList:
@@ -311,8 +313,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _IMG_WARNING:
-            print("WARNING")
-            self.loadImg(self.currentWP)
+            self.loadImg(self.currentWP, fallBack=False)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -342,14 +343,14 @@ class Window(QtWidgets.QMainWindow):
 
         elif msg == _HELP_MSG:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
-            self.msgBox.setText("Right-click on the Jaaw! icon at the bottom-right of your screen"
+            self.msgBox.setText("Right-click the Jaaw! icon in your system tray or taskbar"
                                 " to enter configuration settings")
             self.msgBox.setWindowTitle("Jaaw! Help")
-            self.msgBox.setDetailedText("Image mode will allow you to select one single image or a folder\n"
+            self.msgBox.setDetailedText("Image mode will allow you to select one single image or a folder"
                                         "to show all images inside as a carousel, and its changing interval\n\n"
-                                        "Video mode will let you set a local or YouTube video as your wallpaper,\n"
-                                        "giving it a fully customized and totally awesome aspect!\n\n"
-                                        "Web mode will let you choose a Chromecast daily random image\n"
+                                        "Video mode will let you set a local or YouTube video as your"
+                                        "wallpaper, for a fully customized and totally awesome aspect!\n\n"
+                                        "Web mode will let you choose a Chromecast daily random image"
                                         "a Bing image of the day, or even an URL! (*)\n"
                                         "(*) Bear in mind you won't be able to interact with the web page!")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
@@ -390,8 +391,8 @@ class Config(QtWidgets.QWidget):
             QMenu:selected {background-color: #666; color: #fff;}""")
 
         self.imgAct = self.contextMenu.addMenu("Image")
-        self.fimgAct = self.imgAct.addAction("Single image", self.openSingleImage)
-        self.cimgAct = self.imgAct.addMenu("Carousel of images")
+        self.fimgAct = self.imgAct.addAction("Single Image", self.openSingleImage)
+        self.cimgAct = self.imgAct.addMenu("Images carousel")
         self.imgfAct = self.cimgAct.addAction("Select folder", self.openFolder)
         self.pimgAct = self.cimgAct.addMenu("Select carousel interval")
         imgPeriod = self.config["img_period"]
@@ -400,13 +401,13 @@ class Config(QtWidgets.QWidget):
             self.addOptions(self.pimgAct, key, periods[key], selected=(imgPeriod == periods[key]))
 
         self.videoAct = self.contextMenu.addMenu("Video")
-        self.fvideoAct = self.videoAct.addAction("Select local video file", self.openVideo)
-        self.yvideoAct = self.videoAct.addAction("Enter YouTube reference", self.showYTDialog)
+        self.lvideoAct = self.videoAct.addAction("Local video file", self.openVideo)
+        self.yvideoAct = self.videoAct.addAction("YouTube video", self.showYTDialog)
 
         self.webAct = self.contextMenu.addMenu("Web")
-        self.chromeAct = self.webAct.addAction("Daily Chromecast Wallpaper", self.openChromecast)
-        self.bingAct = self.webAct.addAction("Daily Bing Wallpaper", self.openBing)
-        self.uwebAct = self.webAct.addAction("Enter URL", self.showUrlDialog)
+        self.chromeAct = self.webAct.addAction("Chromecast daily random", self.openChromecast)
+        self.bingAct = self.webAct.addAction("Bing image of the day", self.openBing)
+        self.uwebAct = self.webAct.addAction("Web page", self.showUrlDialog)
 
         self.contextMenu.addSeparator()
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
@@ -433,21 +434,6 @@ class Config(QtWidgets.QWidget):
         self.trayIcon.setContextMenu(self.contextMenu)
         self.trayIcon.show()
 
-        self.urlDialog = QtWidgets.QDialog()
-        self.urlDialog.setWindowTitle("Enter URL")
-        self.urlDialog.setWhatsThis("Enter URL\nBe aware you won't be able to interact!")
-        self.urlDialog.setStyleSheet("background-color: #333; color: #ddd;")
-        urlLayout = QtWidgets.QHBoxLayout()
-        self.urlEdit = QtWidgets.QLineEdit()
-        self.urlEdit.setMinimumWidth(300)
-        self.urlButton = QtWidgets.QPushButton("Go")
-        self.urlButton.setStyleSheet("background-color: #333; border:1px solid #ddd;; color: #ddd;")
-        self.urlButton.setMinimumWidth(40)
-        self.urlButton.clicked.connect(self.openURL)
-        urlLayout.addWidget(self.urlEdit)
-        urlLayout.addWidget(self.urlButton)
-        self.urlDialog.setLayout(urlLayout)
-        
         self.ytDialog = QtWidgets.QDialog()
         self.ytDialog.setWindowTitle("Enter YouTube Reference")
         self.ytDialog.setWhatsThis("Enter the YouTube video reference\n(the unintelligible part of the URL)")
@@ -463,12 +449,21 @@ class Config(QtWidgets.QWidget):
         ytLayout.addWidget(self.ytButton)
         self.ytDialog.setLayout(ytLayout)
 
-    def showUrlDialog(self):
-        self.urlDialog.show()
-
-    def showYTDialog(self):
-        self.ytDialog.show()
-
+        self.urlDialog = QtWidgets.QDialog()
+        self.urlDialog.setWindowTitle("Enter URL")
+        self.urlDialog.setWhatsThis("Enter URL\nBe aware you won't be able to interact!")
+        self.urlDialog.setStyleSheet("background-color: #333; color: #ddd;")
+        urlLayout = QtWidgets.QHBoxLayout()
+        self.urlEdit = QtWidgets.QLineEdit()
+        self.urlEdit.setMinimumWidth(300)
+        self.urlButton = QtWidgets.QPushButton("Go")
+        self.urlButton.setStyleSheet("background-color: #333; border:1px solid #ddd;; color: #ddd;")
+        self.urlButton.setMinimumWidth(40)
+        self.urlButton.clicked.connect(self.openURL)
+        urlLayout.addWidget(self.urlEdit)
+        urlLayout.addWidget(self.urlButton)
+        self.urlDialog.setLayout(urlLayout)
+        
     def addOptions(self, option, text, value, selected=False):
         act = option.addAction(text, (lambda: self.execAction(text, value)))
         if selected:
@@ -484,17 +479,27 @@ class Config(QtWidgets.QWidget):
         self.config["img_period"] = int(interval)
         self.saveSettings()
 
+    def showYTDialog(self):
+        self.ytEdit.setText(self.config["yt_url"].split("embed/")[1].split("?")[0])
+        self.ytDialog.show()
+
+    def showUrlDialog(self):
+        self.urlEdit.setText(self.config["url"])
+        self.urlDialog.show()
+
     def updateCheck(self):
+
         self.imgAct.setIcon(self.iconNotSelected)
         self.fimgAct.setIcon(self.iconNotSelected)
         self.cimgAct.setIcon(self.iconNotSelected)
         self.videoAct.setIcon(self.iconNotSelected)
-        self.fvideoAct.setIcon(self.iconNotSelected)
+        self.lvideoAct.setIcon(self.iconNotSelected)
         self.yvideoAct.setIcon(self.iconNotSelected)
         self.webAct.setIcon(self.iconNotSelected)
         self.chromeAct.setIcon(self.iconNotSelected)
         self.bingAct.setIcon(self.iconNotSelected)
         self.uwebAct.setIcon(self.iconNotSelected)
+
         if self.config["mode"] == _IMGMODE:
             self.imgAct.setIcon(self.iconSelected)
             if self.config["img_mode"] == _IMGFIXED:
@@ -505,7 +510,7 @@ class Config(QtWidgets.QWidget):
         elif self.config["mode"] == _VIDMODE:
             self.videoAct.setIcon(self.iconSelected)
             if self.config["video_mode"] == _VIDLOCAL:
-                self.fvideoAct.setIcon(self.iconSelected)
+                self.lvideoAct.setIcon(self.iconSelected)
             elif self.config["video_mode"] == _VIDYT:
                 self.yvideoAct.setIcon(self.iconSelected)
 
@@ -517,6 +522,7 @@ class Config(QtWidgets.QWidget):
                 self.bingAct.setIcon(self.iconSelected)
             elif self.config["web_mode"] == _URLMODE:
                 self.uwebAct.setIcon(self.iconSelected)
+
         self.contextMenu.update()
 
     def openSingleImage(self):
@@ -638,6 +644,8 @@ if __name__ == "__main__":
         sys.excepthook = exception_hook
     win = Window()
     win.show()
+    if "macOS" in platform.platform():  # If executed after app.exec_(), it takes QMenu as main app and doesn't work
+       bkgutils.sendBehind(_CAPTION)
     try:
         app.exec_()
     except:
