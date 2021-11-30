@@ -56,8 +56,8 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
 
 
 def getScreenSize():
-    screen = QtWidgets.QApplication.primaryScreen()
-    return screen.size()
+    size = QtWidgets.QApplication.primaryScreen().size()
+    return size.width(), size.height()
 
 
 def loadFont(font):

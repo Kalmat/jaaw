@@ -32,8 +32,8 @@
     "video_mode": "YOUTUBE",
     "Comment4": "Video to play when in VIDEO mode",
     "video": "",
-    "Comment5": "Youtube video. Notice the unintelligible part between last '/' and '?'",
-    "yt_url": "https://www.youtube.com/embed/BHACKCNDMW8?autoplay=1&loop=1&playlist=BHACKCNDMW8&mute=1&controls=0&rel=0&vq=hd720",
+    "Comment5": "Youtube video URL",
+    "yt_url": "https://www.youtube.com/watch?v=BHACKCNDMW8",
     "Available_web_modes": [
       "CHROME",
       "BING",

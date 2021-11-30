@@ -52,6 +52,7 @@ def getBingImages():
 
 
 def getBingTodayImage():
+
     image = ""
 
     URL = "https://bing.gifposter.com"

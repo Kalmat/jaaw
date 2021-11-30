@@ -6,7 +6,6 @@ import platform
 import subprocess
 from typing import List
 import ctypes
-
 import utils
 
 if "Windows" in platform.platform():
@@ -172,28 +171,31 @@ elif "Linux" in platform.platform():
         return windows
 
     def sendBehind(name):
-        pyautogui.leftClick(x=1, y=1)  # just clicking on the desktop, the window goes to bottom!
+        # Mint/Cinnamon: just clicking on the desktop, the window goes to bottom!
+        pyautogui.leftClick(x=SCREEN.width_in_pixels - 1, y=SCREEN.height_in_pixels - 100)
+
         # gc = ROOT.create_gc(foreground=SCREEN.white_pixel, background=SCREEN.black_pixel)
         # win = findWindowHandles(title=name)
         # if win:
         #     win = win[0]
         #     w = DISP.create_resource_object('window', win)
-            # https://stackoverflow.com/questions/58885803/can-i-use-net-wm-window-type-dock-ewhm-extension-in-openbox
-            # Does not sends current window below. It does with the new window, but not behind the desktop icons
-            # w.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
-            #                   32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
-            #                   Xlib.X.PropModeReplace)
-            # w.map()
-
-            # newWin = ROOT.create_window(0, 0, 500, 500, 1, SCREEN.root_depth,
-            #                             background_pixel=SCREEN.black_pixel,
-            #                             event_mask=Xlib.X.ExposureMask | Xlib.X.KeyPressMask)
-            # newWin.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
-            #                        32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
-            #                        Xlib.X.PropModeReplace)
-            # newWin.map()
-            # newWin.reparent(ROOT, 0, 0)
-            # w.reparent(newWin, 0, 0)
+        #
+        #     https://stackoverflow.com/questions/58885803/can-i-use-net-wm-window-type-dock-ewhm-extension-in-openbox
+        #     Does not sends current window below. It does with the new window, but not behind the desktop icons
+        #     w.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
+        #                       32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
+        #                       Xlib.X.PropModeReplace)
+        #     w.map()
+        #
+        #     newWin = ROOT.create_window(0, 0, 500, 500, 1, SCREEN.root_depth,
+        #                                 background_pixel=SCREEN.black_pixel,
+        #                                 event_mask=Xlib.X.ExposureMask | Xlib.X.KeyPressMask)
+        #     newWin.change_property(DISP.intern_atom('_NET_WM_WINDOW_TYPE'), Xlib.Xatom.ATOM,
+        #                            32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
+        #                            Xlib.X.PropModeReplace)
+        #     newWin.map()
+        #     newWin.reparent(ROOT, 0, 0)
+        #     w.reparent(newWin, 0, 0)
 
     def x11SendBehind(name):
         x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
@@ -239,23 +241,22 @@ elif "Linux" in platform.platform():
 
         hwnd = x11GetWindowsWithTitle(m_display, m_root_win, name)
         if hwnd:
-            # Doesn't fail, but doesn't work either. Not sure if intended for this, anyway
-            #x11.XLowerWindow(m_display, hwnd)
-
             # https://stackoverflow.com/questions/33578144/xlib-push-window-to-the-back-of-the-other-windows
             window_type = x11.XInternAtom(m_display, "_NET_WM_WINDOW_TYPE", False)
             desktop = x11.XInternAtom(m_display, "_NET_WM_WINDOW_TYPE_DESKTOP", False)
             data = (ctypes.c_ubyte * len(str(desktop)))()
 
-            newWin = x11.XCreateSimpleWindow(m_display, m_root_win, ctypes.c_uint(0), ctypes.c_uint(0), ctypes.c_uint(1920), ctypes.c_uint(1080), ctypes.c_uint(0), ctypes.c_ulong(0), SCREEN.white_pixel)  # SCREEN.white_pixel) # WhitePixel(m_display, DefaultScreen(m_display)))
-            x11.XChangeProperty(m_display, newWin, window_type, Xlib.Xatom.ATOM, ctypes.c_int(32), Xlib.X.PropModeReplace, data, ctypes.c_int(1))
-            x11.XClearWindow(m_display, newWin)
-            x11.XMapWindow(m_display, newWin)
+            # newWin = x11.XCreateSimpleWindow(m_display, m_root_win, ctypes.c_uint(0), ctypes.c_uint(0), ctypes.c_uint(1920), ctypes.c_uint(1080), ctypes.c_uint(0), ctypes.c_ulong(0), SCREEN.white_pixel)  # SCREEN.white_pixel) # WhitePixel(m_display, DefaultScreen(m_display)))
+            # x11.XChangeProperty(m_display, newWin, window_type, Xlib.Xatom.ATOM, ctypes.c_int(32), Xlib.X.PropModeReplace, data, ctypes.c_int(1))
+            # x11.XClearWindow(m_display, newWin)
+            # x11.XMapWindow(m_display, newWin)
 
             x11.XChangeProperty(m_display, hwnd, window_type, Xlib.Xatom.ATOM, ctypes.c_int(32), Xlib.X.PropModeReplace, data, ctypes.c_int(1))
-            x11.XClearWindow(m_display, hwnd)
+            # x11.XClearWindow(m_display, hwnd)
             x11.XMapWindow(m_display, hwnd)
-            x11.XReparentWindow(m_display, hwnd, newWin)
+            # x11.XReparentWindow(m_display, hwnd, newWin)
+
+            x11.XLowerWindow(m_display, hwnd)
 
     def sendFront(name, parent):
         win = findWindowHandles(title=name)
@@ -297,7 +298,7 @@ elif "macOS" in platform.platform():
 
     def setWallpaper(imageURL):
         # https://stackoverflow.com/questions/65936437/change-macos-background-picture-with-adapt-to-screen-parameter-in-python
-        # Use this to convert a "normal" image into a macOS wallpaper type (NSURL)
+        # Use this to convert a "normal" image path into a macOS wallpaper path (NSURL)
         # imageURL = Foundation.NSURL.fileURLWithPath_(img)
         sharedSpace = AppKit.NSWorkspace.sharedWorkspace()
         mainScreen = AppKit.NSScreen.mainScreen()
