@@ -1,4 +1,3 @@
-ctypes
 requests
 bs4
 PyQt5; sys_platform == 'windows'
@@ -7,7 +6,7 @@ python3-PyQt5; sys_platform == 'linux'
 python3-PyQt5.PyQtWebEngine; sys_platform == 'linux'
 python3-PyQt5.PyQtMultiMedia; sys_platform == 'linux'
 xlib; sys_platform == 'linux'
+pyuserinput; sys_platform == 'linux'
 PyQt5; sys_platform == 'darwin'
-pyautogui; sys_platform == 'linux'
 PyQtWebEngine; sys_platform == 'darwin'
 pyobjc; sys_platform == 'darwin'

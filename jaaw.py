@@ -19,8 +19,7 @@ _CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
 _CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
 _SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
 _ICON_SELECTED = utils.resource_path("resources/tick.png")
-_SETTINGS_FILE = "settings.json"
-_DEFAULT_SETTINGS_FILE = utils.resource_path("resources/defsett.json")
+_SETTINGS_FILE = utils.resource_path("resources/settings.json")
 
 _IMGMODE = "IMAGE"
 _IMGFIXED = "FIXED"
@@ -53,7 +52,7 @@ class Window(QtWidgets.QMainWindow):
         self.setupUi()
         qtutils.initDisplay(parent=self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION)
 
-        if "macOS" in platform.platform():
+        if "macOS" in platform.platform() or "Darwin" in platform.platform():
             self.currentMacWP = bkgutils.getWallpaper()
             self.currentWP = ""
         else:
@@ -95,11 +94,11 @@ class Window(QtWidgets.QMainWindow):
         self.bkg_label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
         # Reduce CPU?
-        # Explorer.exe shell:appsFolder\Microsoft.ZuneVideo_8wekyb3d8bbwe!Microsoft.ZuneVideo
-        # https://stackoverflow.com/questions/57015932/how-to-attach-and-detach-an-external-app-with-pyqt5-or-dock-an-external-applicat
-        # If you get this error: defaultServiceProvider::requestService(): no service found for - "org.qt-project.qt.mediaplayer"
-        # Run: sudo apt-get install libqt5-multimedia-plugins
-        # Also install all codecs: gstreamer-qt5, gstreamer-bad, gstreamer-ugly, ubuntu-restricted-extras, gstreamer-ffmpeg
+        #        Explorer.exe shell:appsFolder\Microsoft.ZuneVideo_8wekyb3d8bbwe!Microsoft.ZuneVideo
+        #        https://stackoverflow.com/questions/57015932/how-to-attach-and-detach-an-external-app-with-pyqt5-or-dock-an-external-applicat
+        # LINUX: If you get this error: defaultServiceProvider::requestService(): no service found for - "org.qt-project.qt.mediaplayer"
+        #        Run: sudo apt-get install libqt5-multimedia-plugins
+        #        Also install all codecs: gstreamer-qt5, gstreamer-bad, gstreamer-ugly, ubuntu-restricted-extras, gstreamer-ffmpeg
         self.mediaPlayer = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
         self.mediaPlayer.setMuted(True)
         self.playlist = QtMultimedia.QMediaPlaylist()
@@ -117,8 +116,8 @@ class Window(QtWidgets.QMainWindow):
         self.webView.setGeometry(0, 0, self.xmax, self.ymax)
         self.webFrame = self.webView.page()
         self.webFrame.setAudioMuted(True)
-        # Use this to adjust to the screen (but possibly cutting the page/video)
-        # self.webFrame.setZoomFactor(1.0)
+        # Use this to adjust page/video to screen (but possibly cutting the page/video)
+        # self.webFrame.setZoomFactor(1.5)
 
         self.myLayout.addWidget(self.bkg_label)
         self.myLayout.addWidget(self.videoWidget)
@@ -130,15 +129,8 @@ class Window(QtWidgets.QMainWindow):
 
     def loadSettings(self):
 
-        try:
-            with open(_SETTINGS_FILE, encoding='UTF-8') as file:
+        with open(_SETTINGS_FILE, encoding='UTF-8') as file:
                 self.config = json.load(file)
-
-        except:
-            self.showWarning(_SETTINGS_WARNING)
-            with open(utils.resource_path(_DEFAULT_SETTINGS_FILE), encoding='UTF-8') as file:
-                self.config = json.load(file)
-
         self.loadSettingsValues()
 
     def loadSettingsValues(self):
@@ -150,7 +142,8 @@ class Window(QtWidgets.QMainWindow):
         self.imgPeriod = self.config["img_period"]
         self.videoMode = self.config["video_mode"]
         self.video = self.config["video"]
-        self.ytUrl = self.config["yt_url"]
+        index = self.config["yt_index"] if 0 <= self.config["yt_index"] < len(self.config["yt_url"]) else 0
+        self.ytUrl = self.config["yt_url"][index]
         try:
             ytRef = self.ytUrl.split("watch?v=")[1].split("&")[0]
         except:
@@ -164,7 +157,8 @@ class Window(QtWidgets.QMainWindow):
         self.webMode = self.config["web_mode"]
         self.chromeLast = self.config["chrome_last"]
         self.bingLast = self.config["bing_last"]
-        self.url = self.config["url"]
+        index = self.config["url_index"] if 0 <= self.config["url_index"] < len(self.config["url"]) else 0
+        self.url = self.config["url"][index]
 
     @QtCore.pyqtSlot()
     def reloadSettings(self):
@@ -466,12 +460,42 @@ class Config(QtWidgets.QWidget):
 
         self.videoAct = self.contextMenu.addMenu("Video")
         self.lvideoAct = self.videoAct.addAction("Local video file", self.openVideo)
-        self.yvideoAct = self.videoAct.addAction("YouTube video", self.showYTDialog)
+        self.yvideoAct = self.videoAct.addMenu("YouTube video")
+
+        self.ytCombo = QtWidgets.QComboBox(self.contextMenu)
+        self.ytCombo.setStyleSheet("""
+            QComboBox {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 10px;}
+            QComboBox QAbstractItemView {font-size: 18px; background-color: #333; selection-background-color: #666; color: #fff; padding: 10px;}
+            """)
+        self.ytCombo.addItem("Select a YouTube video")
+        self.ytCombo.addItem("-- Enter new YouTube URL --")
+        for item in self.config["yt_url"]:
+            self.ytCombo.addItem(item)
+        self.ytCombo.adjustSize()
+        self.ytCombo.currentIndexChanged.connect(self.ytSelectionChange)
+        ytAction = QtWidgets.QWidgetAction(self.contextMenu)
+        ytAction.setDefaultWidget(self.ytCombo)
+        self.yvideoAct.addAction(ytAction)
 
         self.webAct = self.contextMenu.addMenu("Web")
         self.chromeAct = self.webAct.addAction("Chromecast daily random", self.openChromecast)
         self.bingAct = self.webAct.addAction("Bing image of the day", self.openBing)
-        self.uwebAct = self.webAct.addAction("Web page", self.showUrlDialog)
+        self.uwebAct = self.webAct.addMenu("Web page")
+
+        self.urlCombo = QtWidgets.QComboBox(self.contextMenu)
+        self.urlCombo.setStyleSheet("""
+            QComboBox {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 10px;}
+            QComboBox QAbstractItemView {font-size: 18px; background-color: #333; selection-background-color: #666; color: #fff; padding: 10px;}
+            """)
+        self.urlCombo.addItem("Select a Web page")
+        self.urlCombo.addItem("-- Enter new URL --")
+        for item in self.config["url"]:
+            self.urlCombo.addItem(item)
+        self.urlCombo.adjustSize()
+        self.urlCombo.currentIndexChanged.connect(self.webSelectionChange)
+        webAction = QtWidgets.QWidgetAction(self.contextMenu)
+        webAction.setDefaultWidget(self.urlCombo)
+        self.uwebAct.addAction(webAction)
 
         self.contextMenu.addSeparator()
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
@@ -503,7 +527,7 @@ class Config(QtWidgets.QWidget):
         self.ytDialog.setStyleSheet("background-color: #333; color: #ddd;")
         ytLayout = QtWidgets.QHBoxLayout()
         self.ytEdit = QtWidgets.QLineEdit()
-        self.ytEdit.setMinimumWidth(300)
+        self.ytEdit.setMinimumWidth(400)
         self.ytButton = QtWidgets.QPushButton("Go")
         self.ytButton.setStyleSheet("background-color: #333; border:1px solid #ddd;; color: #ddd;")
         self.ytButton.setMinimumWidth(40)
@@ -518,7 +542,7 @@ class Config(QtWidgets.QWidget):
         self.urlDialog.setStyleSheet("background-color: #333; color: #ddd;")
         urlLayout = QtWidgets.QHBoxLayout()
         self.urlEdit = QtWidgets.QLineEdit()
-        self.urlEdit.setMinimumWidth(300)
+        self.urlEdit.setMinimumWidth(400)
         self.urlButton = QtWidgets.QPushButton("Go")
         self.urlButton.setStyleSheet("background-color: #333; border:1px solid #ddd;; color: #ddd;")
         self.urlButton.setMinimumWidth(40)
@@ -542,13 +566,27 @@ class Config(QtWidgets.QWidget):
         self.config["img_period"] = int(interval)
         self.saveSettings()
 
-    def showYTDialog(self):
-        self.ytEdit.setText(self.config["yt_url"])
-        self.ytDialog.show()
+    def ytSelectionChange(self):
+        if self.ytCombo.currentIndex() == 1:
+            self.ytDialog.show()
+        elif self.ytCombo.currentIndex() > 1:
+            self.config["mode"] = _VIDMODE
+            self.config["video_mode"] = _VIDYT
+            self.config["yt_index"] = self.ytCombo.currentIndex() - 2 if 1 < self.ytCombo.currentIndex() < self.ytCombo.count() else 0
+            self.ytCombo.setCurrentIndex(0)
+            self.updateCheck()
+            self.saveSettings()
 
-    def showUrlDialog(self):
-        self.urlEdit.setText(self.config["url"])
-        self.urlDialog.show()
+    def webSelectionChange(self):
+        if self.urlCombo.currentIndex() == 1:
+            self.urlDialog.show()
+        elif self.urlCombo.currentIndex() > 1:
+            self.config["mode"] = _WEBMODE
+            self.config["web_mode"] = _URLMODE
+            self.config["url_index"] = self.urlCombo.currentIndex() - 2 if 1 < self.urlCombo.currentIndex() < self.urlCombo.count() else 0
+            self.urlCombo.setCurrentIndex(0)
+            self.updateCheck()
+            self.saveSettings()
 
     def updateCheck(self):
 
@@ -591,6 +629,10 @@ class Config(QtWidgets.QWidget):
     def openSingleImage(self):
 
         fileName = ""
+        folder = os.path.dirname(self.config["img"])
+        if not os.path.isdir(folder):
+            folder = "."
+        self.imgDialog.setDirectory(folder)
         if self.imgDialog.exec_() == QtWidgets.QFileDialog.Accepted:
             fileName = self.imgDialog.selectedFiles()[0]
 
@@ -604,6 +646,10 @@ class Config(QtWidgets.QWidget):
     def openFolder(self):
 
         fileName = ""
+        folder = self.config["folder"]
+        if not os.path.isdir(folder):
+            folder = "."
+        self.folderDialog.setDirectory(folder)
         if self.folderDialog.exec_() == QtWidgets.QFileDialog.Accepted:
             fileName = self.folderDialog.selectedFiles()[0]
 
@@ -617,6 +663,10 @@ class Config(QtWidgets.QWidget):
     def openVideo(self):
 
         fileName = ""
+        folder = os.path.dirname(self.config["video"])
+        if not os.path.isdir(folder):
+            folder = "."
+        self.videoDialog.setDirectory(folder)
         if self.videoDialog.exec_() == QtWidgets.QFileDialog.Accepted:
             fileName = self.videoDialog.selectedFiles()[0]
 
@@ -629,9 +679,15 @@ class Config(QtWidgets.QWidget):
 
     def openYT(self):
         self.ytDialog.close()
+        self.ytCombo.setCurrentIndex(0)
         self.config["mode"] = _VIDMODE
         self.config["video_mode"] = _VIDYT
-        self.config["yt_url"] = self.ytEdit.text()
+        if len(self.config["yt_url"]) >= 10:
+            self.config["yt_url"].pop(0)
+            self.ytCombo.removeItem(2)
+        self.config["yt_url"].append(self.ytEdit.text())
+        self.ytCombo.addItem(self.ytEdit.text())
+        self.config["yt_index"] = len(self.config["yt_url"]) - 1
         self.updateCheck()
         self.saveSettings()
 
@@ -649,9 +705,15 @@ class Config(QtWidgets.QWidget):
 
     def openURL(self):
         self.urlDialog.close()
+        self.urlCombo.setCurrentIndex(0)
         self.config["mode"] = _WEBMODE
         self.config["web_mode"] = _URLMODE
-        self.config["url"] = self.urlEdit.text()
+        if len(self.config["url"]) >= 10:
+            self.config["url"].pop(0)
+            self.urlCombo.removeItem(2)
+        self.config["url"].append(self.urlEdit.text())
+        self.urlCombo.addItem(self.urlEdit.text())
+        self.config["url_index"] = len(self.config["url"]) - 1
         self.updateCheck()
         self.saveSettings()
 
@@ -705,7 +767,7 @@ if __name__ == "__main__":
         sys.excepthook = exception_hook
     win = Window()
     win.show()
-    if "macOS" in platform.platform():  # Not working if executed before win.show() or after app.exec_()
+    if "macOS" in platform.platform() or "Darwin" in platform.platform():  # Not working if executed before win.show() or after app.exec_()
        bkgutils.sendBehind(_CAPTION)
     try:
         app.exec_()

@@ -141,7 +141,7 @@ elif "Linux" in platform.platform():
     import Xlib
     import Xlib.X
     import Xlib.display
-    import pyautogui
+    from pymouse import PyMouse
 
     DISP = Xlib.display.Display()
     SCREEN = DISP.screen()
@@ -171,10 +171,11 @@ elif "Linux" in platform.platform():
         return windows
 
     def sendBehind(name):
-        # Mint/Cinnamon: just clicking on the desktop, the window goes to bottom!
-        pyautogui.leftClick(x=SCREEN.width_in_pixels - 1, y=SCREEN.height_in_pixels - 100)
+        # Mint/Cinnamon: just clicking on the desktop, it comes up, sending the window/wallpaper to bottom!
+        m = PyMouse()
+        m.click(SCREEN.width_in_pixels - 1, SCREEN.height_in_pixels - 100, 1)
 
-        # gc = ROOT.create_gc(foreground=SCREEN.white_pixel, background=SCREEN.black_pixel)
+        # Non-working attempts for Ubuntu/Unity using Xlib
         # win = findWindowHandles(title=name)
         # if win:
         #     win = win[0]
@@ -194,10 +195,10 @@ elif "Linux" in platform.platform():
         #                            32, [DISP.intern_atom("_NET_WM_WINDOW_TYPE_DESKTOP"), ],
         #                            Xlib.X.PropModeReplace)
         #     newWin.map()
-        #     newWin.reparent(ROOT, 0, 0)
         #     w.reparent(newWin, 0, 0)
 
     def x11SendBehind(name):
+        # Non-working attempts for Ubuntu/Unity directly using x11 library (Xlib does not have XLowerWindow()???)
         x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
         # m_display = x11.XOpenDisplay(None)
         m_display = x11.XOpenDisplay(bytes(os.environ["DISPLAY"], 'ascii'))
@@ -272,7 +273,7 @@ elif "Linux" in platform.platform():
         cmd = 'gsettings set org.gnome.desktop.background picture-uri "%s"' % img
         subprocess.Popen(cmd, shell=True)
 
-elif "macOS" in platform.platform():
+elif "macOS" in platform.platform() or "Darwin" in platform.platform():
     import AppKit
     import Quartz
 
