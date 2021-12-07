@@ -19,6 +19,7 @@ _CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
 _CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
 _SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
 _ICON_SELECTED = utils.resource_path("resources/tick.png")
+_ICON_NOT_SELECTED = utils.resource_path("resources/notick.png")
 _SETTINGS_FILE = "settings.json"
 
 _IMGMODE = "IMAGE"
@@ -56,12 +57,12 @@ class Window(QtWidgets.QMainWindow):
         self.isLinux = "Linux" in platform.platform()
         self.isMacOS = "macOS" in platform.platform() or "Darwin" in platform.platform()
 
-        if self.isMacOS:
-            self.currentMacWP = bkgutils.getWallpaper()
-            self.currentWP = ""
-        else:
-            self.currentWP = bkgutils.getWallpaper()
-            self.currentMacWP = ""
+        # if self.isMacOS:
+        #     self.currentMacWP = bkgutils.getWallpaper()
+        #     self.currentWP = ""
+        # else:
+        #     self.currentWP = bkgutils.getWallpaper()
+        #     self.currentMacWP = ""
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
@@ -335,17 +336,9 @@ class Window(QtWidgets.QMainWindow):
         self.videoWidget.hide()
         self.showWarning(_VID_WARNING)
 
-    def fallBack(self, recover=True):
-        self.wallPaperMode = _IMGMODE
-        self.imgMode = _IMGFIXED
-        self.img = self.currentWP
-        self.timer.stop()
-        self.loadImg(self.currentWP, fallBack=recover)
-
     def showWarning(self, msg):
 
         if msg == _SETTINGS_WARNING:
-            self.fallBack()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Configure your own settings and media to use as wallpaper\n"
                                 "Right-click the Jaaw! tray icon to open settings")
@@ -354,7 +347,6 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _IMG_WARNING:
-            self.fallBack(recover=False)
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -363,7 +355,6 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _FOLDER_WARNING:
-            self.fallBack()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -373,7 +364,6 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _VID_WARNING:
-            self.fallBack()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -383,7 +373,6 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _CHROME_WARNING:
-            self.fallBack()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Chromecast image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -392,7 +381,6 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _VID_WARNING:
-            self.fallBack()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Bing image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -401,7 +389,6 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _YT_WARNING:
-            self.fallBack()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("URL doesn't exist or it's malformed!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -431,7 +418,7 @@ class Window(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def closeAll(self):
-        bkgutils.setWallpaper(self.currentWP or self.currentMacWP)
+        # bkgutils.setWallpaper(self.currentWP or self.currentMacWP)
         QtWidgets.QApplication.quit()
 
 
@@ -456,7 +443,7 @@ class Config(QtWidgets.QWidget):
         self.setGeometry(-1, -1, 1, 1)
 
         self.iconSelected = QtGui.QIcon(_ICON_SELECTED)
-        self.iconNotSelected = QtGui.QIcon()
+        self.iconNotSelected = QtGui.QIcon(_ICON_NOT_SELECTED)
 
         self.contextMenu = QtWidgets.QMenu(self)
         if self.isWindows:
@@ -552,8 +539,8 @@ class Config(QtWidgets.QWidget):
         if selected:
             act.setIcon(self.iconSelected)
 
-    def execPeridoAct(self, text, interval):
-        for option in self.pimgAct.children():
+    def execPeriodAct(self, text, interval):
+        for option in self.pimgAct.actions():
             if option.text() == text:
                 option.setIcon(self.iconSelected)
             else:
@@ -570,10 +557,10 @@ class Config(QtWidgets.QWidget):
     def execYtAct(self, text):
         self.config["mode"] = _VIDMODE
         self.config["video_mode"] = _VIDYT
-        for i, option in enumerate(self.yvideoAct.children()):
-            if i > 1 and option.text() == text:
+        for i, option in enumerate(self.yvideoAct.actions()):
+            if i > 0 and option.text() == text:
                 option.setIcon(self.iconSelected)
-                self.config["yt_index"] = i - 2
+                self.config["yt_index"] = i - 1
             else:
                 option.setIcon(self.iconNotSelected)
         self.yvideoAct.update()
@@ -591,10 +578,10 @@ class Config(QtWidgets.QWidget):
     def execUrlAct(self, text):
         self.config["mode"] = _WEBMODE
         self.config["web_mode"] = _URLMODE
-        for i, option in enumerate(self.uwebAct.children()):
-            if i > 1 and option.text() == text:
+        for i, option in enumerate(self.uwebAct.actions()):
+            if i > 0 and option.text() == text:
                 option.setIcon(self.iconSelected)
-                self.config["url_index"] = i - 2
+                self.config["url_index"] = i - 1
             else:
                 option.setIcon(self.iconNotSelected)
         self.uwebAct.update()
@@ -701,9 +688,13 @@ class Config(QtWidgets.QWidget):
         if text and text not in self.config["yt_url"]:
             if len(self.config["yt_url"]) >= 10:
                 self.config["yt_url"].pop(0)
+                self.yvideoAct.removeAction(self.yvideoAct.actions()[1])
             self.config["yt_url"].append(text)
             self.config["yt_index"] = len(self.config["yt_url"]) - 1
-            self.yvideoAct.addAction(text, (lambda: self.execYtAct(text)))
+            for option in self.yvideoAct.actions():
+                option.setIcon(self.iconNotSelected)
+            option = self.yvideoAct.addAction(text, (lambda: self.execYtAct(text)))
+            option.setIcon(self.iconSelected)
             self.updateCheck()
             self.saveSettings()
 
@@ -727,8 +718,12 @@ class Config(QtWidgets.QWidget):
         if text and text not in self.config["url"]:
             if len(self.config["url"]) >= 10:
                 self.config["url"].pop(0)
+                self.uwebAct.removeAction(self.yvideoAct.actions()[1])
             self.config["url"].append(text)
-            self.uwebAct.addAction(text, (lambda: self.execUrlAct(text)))
+            for option in self.uwebAct.actions():
+                option.setIcon(self.iconNotSelected)
+            option = self.uwebAct.addAction(text, (lambda: self.execUrlAct(text)))
+            option.setIcon(self.iconSelected)
             self.config["url_index"] = len(self.config["url"]) - 1
             self.updateCheck()
             self.saveSettings()
