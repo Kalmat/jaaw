@@ -19,7 +19,7 @@ _CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
 _CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
 _SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
 _ICON_SELECTED = utils.resource_path("resources/tick.png")
-_SETTINGS_FILE = utils.resource_path("resources/settings.json")
+_SETTINGS_FILE = "settings.json"
 
 _IMGMODE = "IMAGE"
 _IMGFIXED = "FIXED"
@@ -52,7 +52,11 @@ class Window(QtWidgets.QMainWindow):
         self.setupUi()
         qtutils.initDisplay(parent=self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION)
 
-        if "macOS" in platform.platform() or "Darwin" in platform.platform():
+        self.isWindows = "Windows" in platform.platform()
+        self.isLinux = "Linux" in platform.platform()
+        self.isMacOS = "macOS" in platform.platform() or "Darwin" in platform.platform()
+
+        if self.isMacOS:
             self.currentMacWP = bkgutils.getWallpaper()
             self.currentWP = ""
         else:
@@ -74,7 +78,7 @@ class Window(QtWidgets.QMainWindow):
         self.menu.showHelp.connect(self.showHelp)
         self.menu.show()
 
-        if "Windows" in platform.platform() or "Linux" in platform.platform():
+        if self.isWindows or self.isLinux:
             bkgutils.sendBehind(_CAPTION)
         self.start()
 
@@ -129,8 +133,12 @@ class Window(QtWidgets.QMainWindow):
 
     def loadSettings(self):
 
-        with open(_SETTINGS_FILE, encoding='UTF-8') as file:
-                self.config = json.load(file)
+        try:
+            with open(_SETTINGS_FILE, encoding='UTF-8') as file:
+                    self.config = json.load(file)
+        except:
+            with open(utils.resource_path(_SETTINGS_FILE), encoding='UTF-8') as file:
+                    self.config = json.load(file)
         self.loadSettingsValues()
 
     def loadSettingsValues(self):
@@ -152,8 +160,9 @@ class Window(QtWidgets.QMainWindow):
             except:
                 ytRef = "BHACKCNDMW8"
                 self.showWarning(_YT_WARNING)
-        self.ytUrlEmbed = "https://www.youtube.com/embed/%s?autoplay=1&loop=1&playlist=%s&mute=1&controls=0&rel=0" \
-                          % (ytRef, ytRef)     # Add &qv=hd720 to select HD quality (or other)
+        # Remove &qv=hd720 in case videos with lower quality do not load
+        self.ytUrlEmbed = "https://www.youtube.com/embed/%s?autoplay=1&loop=1&playlist=%s&mute=1&controls=0&rel=0&qv=hd720" \
+                          % (ytRef, ytRef)
         self.webMode = self.config["web_mode"]
         self.chromeLast = self.config["chrome_last"]
         self.bingLast = self.config["bing_last"]
@@ -435,19 +444,25 @@ class Config(QtWidgets.QWidget):
     def __init__(self, parent, config):
         QtWidgets.QWidget.__init__(self, parent)
 
+        self.isWindows = "Windows" in platform.platform()
+        self.isLinux = "Linux" in platform.platform()
+        self.isMacOS = "macOS" in platform.platform() or "Darwin" in platform.platform()
+
         self.config = config
         self.setupUI()
 
     def setupUI(self):
 
+        self.setGeometry(-1, -1, 1, 1)
+
         self.iconSelected = QtGui.QIcon(_ICON_SELECTED)
         self.iconNotSelected = QtGui.QIcon()
 
         self.contextMenu = QtWidgets.QMenu(self)
-        self.contextMenu.setStyleSheet("""
-            QMenu {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 10px;}
-            QMenu:selected {background-color: #666; color: #fff;}""")
-
+        if self.isWindows:
+            self.contextMenu.setStyleSheet("""
+                QMenu {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 10px;}
+                QMenu:selected {background-color: #666; color: #fff;}""")
         self.imgAct = self.contextMenu.addMenu("Image")
         self.fimgAct = self.imgAct.addAction("Single Image", self.openSingleImage)
         self.cimgAct = self.imgAct.addMenu("Images carousel")
@@ -456,46 +471,27 @@ class Config(QtWidgets.QWidget):
         imgPeriod = self.config["img_period"]
         periods = self.config["Available_periods"]
         for key in periods.keys():
-            self.addOptions(self.pimgAct, key, periods[key], selected=(imgPeriod == periods[key]))
+            self.addPeriodOpts(self.pimgAct, key, periods[key], selected=(imgPeriod == periods[key]))
 
         self.videoAct = self.contextMenu.addMenu("Video")
         self.lvideoAct = self.videoAct.addAction("Local video file", self.openVideo)
         self.yvideoAct = self.videoAct.addMenu("YouTube video")
-
-        self.ytCombo = QtWidgets.QComboBox(self.contextMenu)
-        self.ytCombo.setStyleSheet("""
-            QComboBox {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 10px;}
-            QComboBox QAbstractItemView {font-size: 18px; background-color: #333; selection-background-color: #666; color: #fff; padding: 10px;}
-            """)
-        self.ytCombo.addItem("Select a YouTube video")
-        self.ytCombo.addItem("-- Enter new YouTube URL --")
-        for item in self.config["yt_url"]:
-            self.ytCombo.addItem(item)
-        self.ytCombo.adjustSize()
-        self.ytCombo.currentIndexChanged.connect(self.ytSelectionChange)
-        ytAction = QtWidgets.QWidgetAction(self.contextMenu)
-        ytAction.setDefaultWidget(self.ytCombo)
-        self.yvideoAct.addAction(ytAction)
+        ytUrls = self.config["yt_url"]
+        ytUrl = self.config["yt_url"][self.config["yt_index"] if 0 <= self.config["yt_index"] < len(ytUrls) else 0]
+        self.yvideoAct.addAction("-- Enter New Youtube Video URL --", self.addNewYt)
+        for item in ytUrls:
+            self.addYtOpts(self.yvideoAct, item, selected=(ytUrl == item))
 
         self.webAct = self.contextMenu.addMenu("Web")
         self.chromeAct = self.webAct.addAction("Chromecast daily random", self.openChromecast)
         self.bingAct = self.webAct.addAction("Bing image of the day", self.openBing)
         self.uwebAct = self.webAct.addMenu("Web page")
 
-        self.urlCombo = QtWidgets.QComboBox(self.contextMenu)
-        self.urlCombo.setStyleSheet("""
-            QComboBox {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 10px;}
-            QComboBox QAbstractItemView {font-size: 18px; background-color: #333; selection-background-color: #666; color: #fff; padding: 10px;}
-            """)
-        self.urlCombo.addItem("Select a Web page")
-        self.urlCombo.addItem("-- Enter new URL --")
-        for item in self.config["url"]:
-            self.urlCombo.addItem(item)
-        self.urlCombo.adjustSize()
-        self.urlCombo.currentIndexChanged.connect(self.webSelectionChange)
-        webAction = QtWidgets.QWidgetAction(self.contextMenu)
-        webAction.setDefaultWidget(self.urlCombo)
-        self.uwebAct.addAction(webAction)
+        urls = self.config["url"]
+        url = self.config["url"][self.config["url_index"] if 0 <= self.config["url_index"] < len(urls) else 0]
+        self.uwebAct.addAction("-- Enter New Web Page URL --", self.addNewUrl)
+        for item in urls:
+            self.addUrlOpts(self.uwebAct, item, selected=(url == item))
 
         self.contextMenu.addSeparator()
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
@@ -551,12 +547,12 @@ class Config(QtWidgets.QWidget):
         urlLayout.addWidget(self.urlButton)
         self.urlDialog.setLayout(urlLayout)
         
-    def addOptions(self, option, text, value, selected=False):
-        act = option.addAction(text, (lambda: self.execAction(text, value)))
+    def addPeriodOpts(self, option, text, value, selected=False):
+        act = option.addAction(text, (lambda: self.execPeriodAct(text, value)))
         if selected:
             act.setIcon(self.iconSelected)
 
-    def execAction(self, text, interval):
+    def execPeridoAct(self, text, interval):
         for option in self.pimgAct.children():
             if option.text() == text:
                 option.setIcon(self.iconSelected)
@@ -566,27 +562,47 @@ class Config(QtWidgets.QWidget):
         self.config["img_period"] = int(interval)
         self.saveSettings()
 
-    def ytSelectionChange(self):
-        if self.ytCombo.currentIndex() == 1:
-            self.ytDialog.show()
-        elif self.ytCombo.currentIndex() > 1:
-            self.config["mode"] = _VIDMODE
-            self.config["video_mode"] = _VIDYT
-            self.config["yt_index"] = self.ytCombo.currentIndex() - 2 if 1 < self.ytCombo.currentIndex() < self.ytCombo.count() else 0
-            self.ytCombo.setCurrentIndex(0)
-            self.updateCheck()
-            self.saveSettings()
+    def addYtOpts(self, option, text, selected=False):
+        act = option.addAction(text, (lambda: self.execYtAct(text)))
+        if selected:
+            act.setIcon(self.iconSelected)
 
-    def webSelectionChange(self):
-        if self.urlCombo.currentIndex() == 1:
-            self.urlDialog.show()
-        elif self.urlCombo.currentIndex() > 1:
-            self.config["mode"] = _WEBMODE
-            self.config["web_mode"] = _URLMODE
-            self.config["url_index"] = self.urlCombo.currentIndex() - 2 if 1 < self.urlCombo.currentIndex() < self.urlCombo.count() else 0
-            self.urlCombo.setCurrentIndex(0)
-            self.updateCheck()
-            self.saveSettings()
+    def execYtAct(self, text):
+        self.config["mode"] = _VIDMODE
+        self.config["video_mode"] = _VIDYT
+        for i, option in enumerate(self.yvideoAct.children()):
+            if i > 1 and option.text() == text:
+                option.setIcon(self.iconSelected)
+                self.config["yt_index"] = i - 2
+            else:
+                option.setIcon(self.iconNotSelected)
+        self.yvideoAct.update()
+        self.updateCheck()
+        self.saveSettings()
+
+    def addNewYt(self):
+        self.ytDialog.show()
+
+    def addUrlOpts(self, option, text, selected=False):
+        act = option.addAction(text, (lambda: self.execUrlAct(text)))
+        if selected:
+            act.setIcon(self.iconSelected)
+
+    def execUrlAct(self, text):
+        self.config["mode"] = _WEBMODE
+        self.config["web_mode"] = _URLMODE
+        for i, option in enumerate(self.uwebAct.children()):
+            if i > 1 and option.text() == text:
+                option.setIcon(self.iconSelected)
+                self.config["url_index"] = i - 2
+            else:
+                option.setIcon(self.iconNotSelected)
+        self.uwebAct.update()
+        self.updateCheck()
+        self.saveSettings()
+
+    def addNewUrl(self):
+        self.urlDialog.show()
 
     def updateCheck(self):
 
@@ -679,17 +695,17 @@ class Config(QtWidgets.QWidget):
 
     def openYT(self):
         self.ytDialog.close()
-        self.ytCombo.setCurrentIndex(0)
         self.config["mode"] = _VIDMODE
         self.config["video_mode"] = _VIDYT
-        if len(self.config["yt_url"]) >= 10:
-            self.config["yt_url"].pop(0)
-            self.ytCombo.removeItem(2)
-        self.config["yt_url"].append(self.ytEdit.text())
-        self.ytCombo.addItem(self.ytEdit.text())
-        self.config["yt_index"] = len(self.config["yt_url"]) - 1
-        self.updateCheck()
-        self.saveSettings()
+        text = self.ytEdit.text()
+        if text and text not in self.config["yt_url"]:
+            if len(self.config["yt_url"]) >= 10:
+                self.config["yt_url"].pop(0)
+            self.config["yt_url"].append(text)
+            self.config["yt_index"] = len(self.config["yt_url"]) - 1
+            self.yvideoAct.addAction(text, (lambda: self.execYtAct(text)))
+            self.updateCheck()
+            self.saveSettings()
 
     def openChromecast(self):
         self.config["mode"] = _WEBMODE
@@ -705,17 +721,17 @@ class Config(QtWidgets.QWidget):
 
     def openURL(self):
         self.urlDialog.close()
-        self.urlCombo.setCurrentIndex(0)
         self.config["mode"] = _WEBMODE
         self.config["web_mode"] = _URLMODE
-        if len(self.config["url"]) >= 10:
-            self.config["url"].pop(0)
-            self.urlCombo.removeItem(2)
-        self.config["url"].append(self.urlEdit.text())
-        self.urlCombo.addItem(self.urlEdit.text())
-        self.config["url_index"] = len(self.config["url"]) - 1
-        self.updateCheck()
-        self.saveSettings()
+        text = self.urlEdit.text()
+        if text and text not in self.config["url"]:
+            if len(self.config["url"]) >= 10:
+                self.config["url"].pop(0)
+            self.config["url"].append(text)
+            self.uwebAct.addAction(text, (lambda: self.execUrlAct(text)))
+            self.config["url_index"] = len(self.config["url"]) - 1
+            self.updateCheck()
+            self.saveSettings()
 
     def sendShowHelp(self):
         self.showHelp.emit()
@@ -728,10 +744,11 @@ class Config(QtWidgets.QWidget):
         try:
             with open(_SETTINGS_FILE, "w", encoding='UTF-8') as file:
                 json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
-            if reload:
-                self.reloadSettings.emit()
         except:
-            print("Error saving Settings. Your changes will not take effect.")
+            with open(utils.resource_path(_SETTINGS_FILE), "w", encoding='UTF-8') as file:
+                json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
+        if reload:
+            self.reloadSettings.emit()
 
     def saveLast(self, chrome="", bing=""):
         if chrome:

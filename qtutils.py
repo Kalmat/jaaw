@@ -22,6 +22,7 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
         if setAsWallpaper:
             if "Linux" in platform.platform():
                 parent.setAttribute(QtCore.Qt.WA_X11NetWmWindowTypeDesktop)
+                parent.setAttribute(QtCore.Qt.WA_X11DoNotAcceptFocus)
             parent.setFocusPolicy(QtCore.Qt.NoFocus)
             parent.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
             parent.setAttribute(QtCore.Qt.WA_InputMethodTransparent)

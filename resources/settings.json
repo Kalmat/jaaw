@@ -11,7 +11,7 @@
     ],
     "img_mode": "FIXED",
     "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
-    "folder": "",
+    "folder": ".",
     "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
     "Available_periods": {
         "30 sec": 30,
@@ -24,22 +24,23 @@
     },
     "img_period": 120,
     "Comment2": "Image to show when in IMAGE mode, and FIXED",
-    "img": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/Doom.jpg",
+    "img": "",
     "Comment3": "Video to play when in VIDEO mode",
     "Available_video_modes": [
         "LOCAL",
         "YOUTUBE"
     ],
     "video_mode": "YOUTUBE",
-    "video": "D:/Users/alesc/Documents/Proyectos/PycharmProjects/jaaw/resourcesB/Bioshock Rapture.wmv",
+    "video": "",
     "yt_url": [
-        "https://www.youtube.com/watch?v=BHACKCNDMW8",
-        "https://www.youtube.com/watch?v=OhBo1A8atuA",
-        "https://www.youtube.com/watch?v=lM02vNMRRB0",
-        "https://www.youtube.com/watch?v=_hHwz1UWJmIkk",
-        "https://www.youtube.com/watch?v=Nr7FX-JiIbo"
+        "https://youtube/watch?v=BHACKCNDMW8",
+        "https://youtube/watch?v=OhBo1A8atuA",
+        "https://youtube/watch?v=lM02vNMRRB0",
+        "https://youtube/watch?v=bx-0YlFprqc",
+        "https://youtube/watch?v=msnYBMdaB08",
+        "https://youtube/watch?v=_hHwz1UWJmI"
     ],
-    "yt_index": 2,
+    "yt_index": 0,
     "Comment4": "Video to play when in VIDEO mode",
     "Available_web_modes": [
         "CHROME",
@@ -49,7 +50,6 @@
     "web_mode": "URL",
     "url": [
         "https://nasa.gov",
-        "https://stackoverflow.com",
         "https://twitch.tv"
     ],
     "url_index": 0,

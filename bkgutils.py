@@ -173,9 +173,9 @@ elif "Linux" in platform.platform():
     def sendBehind(name):
         # Mint/Cinnamon: just clicking on the desktop, it comes up, sending the window/wallpaper to bottom!
         m = PyMouse()
-        m.click(SCREEN.width_in_pixels - 1, SCREEN.height_in_pixels - 100, 1)
+        m.click(SCREEN.width_in_pixels - 1, SCREEN.height_in_pixels + 100, 1)
 
-        # Non-working attempts for Ubuntu/Unity using Xlib
+        # Non-working attempts for Ubuntu/GNOME using Xlib
         # win = findWindowHandles(title=name)
         # if win:
         #     win = win[0]
@@ -198,7 +198,7 @@ elif "Linux" in platform.platform():
         #     w.reparent(newWin, 0, 0)
 
     def x11SendBehind(name):
-        # Non-working attempts for Ubuntu/Unity directly using x11 library (Xlib does not have XLowerWindow()???)
+        # Non-working attempts for Ubuntu/GNOME directly using x11 library (Xlib does not have XLowerWindow()???)
         x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
         # m_display = x11.XOpenDisplay(None)
         m_display = x11.XOpenDisplay(bytes(os.environ["DISPLAY"], 'ascii'))
@@ -265,13 +265,20 @@ elif "Linux" in platform.platform():
         w.reparent(parent, 0, 0)
 
     def getWallpaper():
-        cmd = 'gsettings set org.gnome.desktop.background picture-uri ""'
-        wp = subprocess.check_output(cmd, shell=True).decode(encoding="utf-8").strip()
-        return utils.resource_path(wp)
+        cmd = """gsettings get org.gnome.desktop.background picture-uri"""
+        try:
+            wp = subprocess.check_output(cmd, shell=True).decode(encoding="utf-8").strip()
+        except:
+            wp = ""
+        return wp
 
     def setWallpaper(img=""):
-        cmd = 'gsettings set org.gnome.desktop.background picture-uri "%s"' % img
-        subprocess.Popen(cmd, shell=True)
+        cmd = """gsettings set org.gnome.desktop.background picture-uri '%s'""" % img
+        try:
+            subprocess.Popen(cmd, shell=True)
+            return True
+        except:
+            return False
 
 elif "macOS" in platform.platform() or "Darwin" in platform.platform():
     import AppKit
