@@ -57,13 +57,6 @@ class Window(QtWidgets.QMainWindow):
         self.isLinux = "Linux" in platform.platform()
         self.isMacOS = "macOS" in platform.platform() or "Darwin" in platform.platform()
 
-        # if self.isMacOS:
-        #     self.currentMacWP = bkgutils.getWallpaper()
-        #     self.currentWP = ""
-        # else:
-        #     self.currentWP = bkgutils.getWallpaper()
-        #     self.currentMacWP = ""
-
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
 
@@ -134,12 +127,17 @@ class Window(QtWidgets.QMainWindow):
 
     def loadSettings(self):
 
+        if os.path.isfile(_SETTINGS_FILE):
+            file = _SETTINGS_FILE
+        else:
+            file = utils.resource_path("resources/" + _SETTINGS_FILE)
+
         try:
-            with open(_SETTINGS_FILE, encoding='UTF-8') as file:
-                    self.config = json.load(file)
+            with open(file, encoding='UTF-8') as file:
+                self.config = json.load(file)
         except:
-            with open(utils.resource_path(_SETTINGS_FILE), encoding='UTF-8') as file:
-                    self.config = json.load(file)
+            pass
+
         self.loadSettingsValues()
 
     def loadSettingsValues(self):
@@ -170,6 +168,8 @@ class Window(QtWidgets.QMainWindow):
         index = self.config["url_index"] if 0 <= self.config["url_index"] < len(self.config["url"]) else 0
         self.url = self.config["url"][index]
 
+        self.vidWarned = False
+
     @QtCore.pyqtSlot()
     def reloadSettings(self):
         self.timer.stop()
@@ -195,7 +195,7 @@ class Window(QtWidgets.QMainWindow):
 
         elif self.wallPaperMode == _VIDMODE:
             if self.videoMode == _VIDLOCAL:
-                self.loadVideo(utils.resource_path(self.video))
+                self.loadVideo(self.video)
             elif self.videoMode == _VIDYT:
                 self.loadWebPage(self.ytUrlEmbed)
 
@@ -210,20 +210,20 @@ class Window(QtWidgets.QMainWindow):
         else:
             self.showWarning(_SETTINGS_WARNING)
 
-    def loadImg(self, img, keepAspect=True, expand=True, fallBack=True):
+    def loadImg(self, img, keepAspect=True, expand=True):
 
         error = False
-        if self.img:
+        if img:
             pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
-            if pixmap:
+            if not pixmap.isNull():
                 self.bkg_label.clear()
                 self.mediaPlayer.stop()
                 self.playlist.clear()
                 self.mediaPlayer.setPlaylist(self.playlist)
-                self.bkg_label.setPixmap(pixmap)
                 self.videoWidget.hide()
                 self.webView.stop()
                 self.webView.hide()
+                self.bkg_label.setPixmap(pixmap)
                 self.move(QtCore.QPoint(0, 0 + int((self.ymax - pixmap.height())/2)))
                 self.bkg_label.show()
             else:
@@ -232,10 +232,7 @@ class Window(QtWidgets.QMainWindow):
             error = True
 
         if error:
-            if fallBack:
-                self.showWarning(_IMG_WARNING)
-            else:
-                self.setGeometry(0, 0, 1, 1)
+            self.showWarning(_IMG_WARNING)
 
     def loadNextImg(self):
         if self.imgList:
@@ -257,7 +254,9 @@ class Window(QtWidgets.QMainWindow):
         self.videoWidget.setGeometry(QtCore.QRect(0, 0, self.xmax, self.ymax))
 
     def loadChrome(self):
-        filename = utils.resource_path("032k-8738jd7-00")
+        filename = "032k-8738jd7-00"
+        if self.isMacOS:
+            filename = utils.resource_path(filename)
         current = time.strftime("%Y%m%d")
         found = True
         if not os.path.isfile(filename) or self.chromeLast < current:
@@ -284,7 +283,9 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(_CHROME_WARNING)
 
     def loadBing(self):
-        filename = utils.resource_path("032k-8738jd7-01")
+        filename = "032k-8738jd7-01"
+        if self.isMacOS:
+            filename = utils.resource_path(filename)
         current = time.strftime("%Y%m%d")
         found = True
         if not os.path.isfile(filename) or self.bingLast < current:
@@ -331,10 +332,20 @@ class Window(QtWidgets.QMainWindow):
         self.showWarning(_HELP_MSG)
 
     def handlePlayError(self):
+        if not self.vidWarned:
+            self.showWarning(_VID_WARNING)
+            self.vidWarned = True
+
+    def fallback(self):
+        self.bkg_label.hide()
+        if self.mediaPlayer.isVideoAvailable():
+            self.mediaPlayer.stop()
         self.playlist.clear()
         self.mediaPlayer.setPlaylist(self.playlist)
         self.videoWidget.hide()
-        self.showWarning(_VID_WARNING)
+        self.webView.stop()
+        self.webView.hide()
+        self.setGeometry(0, 0, 1, 1)
 
     def showWarning(self, msg):
 
@@ -345,6 +356,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
+            self.fallback()
 
         elif msg == _IMG_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
@@ -353,6 +365,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
+            self.fallback()
 
         elif msg == _FOLDER_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
@@ -362,15 +375,17 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.timer.stop()
             self.msgBox.exec_()
+            self.fallback()
 
         elif msg == _VID_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n" +
-                                        self.mediaPlayer.errorString())
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"
+                                        + str(self.mediaPlayer.error()) + self.mediaPlayer.errorString())
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
+            self.fallback()
 
         elif msg == _CHROME_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
@@ -379,14 +394,16 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setDetailedText("Maybe web site is down or your Internet connection is not available now")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
+            self.fallback()
 
-        elif msg == _VID_WARNING:
+        elif msg == _BING_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Bing image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Maybe web site is down or your Internet connection is not available now")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
+            self.fallback()
 
         elif msg == _YT_WARNING:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
@@ -395,6 +412,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setDetailedText("Be sure the URL exists and looks like 'https://youtube.com/watch?v=XXXXXXXXXXX'")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
+            self.fallback()
 
         elif msg == _HELP_MSG:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
@@ -410,7 +428,6 @@ class Window(QtWidgets.QMainWindow):
                                         "(*) Bear in mind you won't be able to interact with the web page")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-        return
 
     def closeEvent(self, event):
         self.closeAll()
@@ -418,7 +435,6 @@ class Window(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def closeAll(self):
-        # bkgutils.setWallpaper(self.currentWP or self.currentMacWP)
         QtWidgets.QApplication.quit()
 
 
@@ -483,7 +499,13 @@ class Config(QtWidgets.QWidget):
         self.contextMenu.addSeparator()
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
         self.quitAct = self.contextMenu.addAction("Quit", self.sendCloseAll)
+
         self.updateCheck()
+
+        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(_CONFIG_ICON), self)
+        self.trayIcon.setToolTip("Jaaw!")
+        self.trayIcon.setContextMenu(self.contextMenu)
+        self.trayIcon.show()
 
         self.imgDialog = QtWidgets.QFileDialog()
         self.imgDialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
@@ -499,14 +521,9 @@ class Config(QtWidgets.QWidget):
         self.videoDialog.setWindowTitle("Select video")
         self.videoDialog.setNameFilter("Video Files (*.flv *.ts *.mts *.avi *.wmv *.mp4)")
 
-        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(_CONFIG_ICON), self)
-        self.trayIcon.setToolTip("Jaaw!")
-
-        self.trayIcon.setContextMenu(self.contextMenu)
-        self.trayIcon.show()
-
         self.ytDialog = QtWidgets.QDialog()
         self.ytDialog.setWindowTitle("Enter YouTube URL")
+        self.ytDialog.setWhatsThis("Enter Youtube URL\nBe aware some videos may not work")
         self.ytDialog.setStyleSheet("background-color: #333; color: #ddd;")
         ytLayout = QtWidgets.QHBoxLayout()
         self.ytEdit = QtWidgets.QLineEdit()
@@ -538,6 +555,8 @@ class Config(QtWidgets.QWidget):
         act = option.addAction(text, (lambda: self.execPeriodAct(text, value)))
         if selected:
             act.setIcon(self.iconSelected)
+        else:
+            act.setIcon(self.iconNotSelected)
 
     def execPeriodAct(self, text, interval):
         for option in self.pimgAct.actions():
@@ -553,6 +572,8 @@ class Config(QtWidgets.QWidget):
         act = option.addAction(text, (lambda: self.execYtAct(text)))
         if selected:
             act.setIcon(self.iconSelected)
+        else:
+            act.setIcon(self.iconNotSelected)
 
     def execYtAct(self, text):
         self.config["mode"] = _VIDMODE
@@ -574,6 +595,8 @@ class Config(QtWidgets.QWidget):
         act = option.addAction(text, (lambda: self.execUrlAct(text)))
         if selected:
             act.setIcon(self.iconSelected)
+        else:
+            act.setIcon(self.iconNotSelected)
 
     def execUrlAct(self, text):
         self.config["mode"] = _WEBMODE
@@ -684,7 +707,7 @@ class Config(QtWidgets.QWidget):
         self.ytDialog.close()
         self.config["mode"] = _VIDMODE
         self.config["video_mode"] = _VIDYT
-        text = self.ytEdit.text()
+        text = self.ytEdit.text().replace("www.youtube.com", "youtube.com")
         if text and text not in self.config["yt_url"]:
             if len(self.config["yt_url"]) >= 10:
                 self.config["yt_url"].pop(0)
@@ -736,12 +759,16 @@ class Config(QtWidgets.QWidget):
 
     def saveSettings(self, reload=True):
 
+        if os.path.isfile(_SETTINGS_FILE):
+            file = _SETTINGS_FILE
+        else:
+            file = utils.resource_path("resources/" + _SETTINGS_FILE)
         try:
-            with open(_SETTINGS_FILE, "w", encoding='UTF-8') as file:
+            with open(file, "w", encoding='UTF-8') as file:
                 json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
         except:
-            with open(utils.resource_path(_SETTINGS_FILE), "w", encoding='UTF-8') as file:
-                json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)
+            pass
+
         if reload:
             self.reloadSettings.emit()
 

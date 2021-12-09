@@ -173,7 +173,7 @@ elif "Linux" in platform.platform():
     def sendBehind(name):
         # Mint/Cinnamon: just clicking on the desktop, it comes up, sending the window/wallpaper to bottom!
         m = PyMouse()
-        m.click(SCREEN.width_in_pixels - 1, SCREEN.height_in_pixels + 100, 1)
+        m.click(SCREEN.width_in_pixels - 1, 300, 1)
 
         # Non-working attempts for Ubuntu/GNOME using Xlib
         # win = findWindowHandles(title=name)
@@ -300,7 +300,6 @@ elif "macOS" in platform.platform() or "Darwin" in platform.platform():
         # https://stackoverflow.com/questions/14099363/get-the-current-wallpaper-in-cocoa
         sharedSpace = AppKit.NSWorkspace.sharedWorkspace()
         mainScreen = AppKit.NSScreen.mainScreen()
-
         imageURL = sharedSpace.desktopImageURLForScreen_(mainScreen)
         return imageURL
 
