@@ -350,24 +350,25 @@ class Window(QtWidgets.QMainWindow):
     def showWarning(self, msg):
 
         if msg == _SETTINGS_WARNING:
+            self.fallback()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Configure your own settings and media to use as wallpaper\n"
                                 "Right-click the Jaaw! tray icon to open settings")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.fallback()
 
         elif msg == _IMG_WARNING:
+            self.fallback()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.fallback()
 
         elif msg == _FOLDER_WARNING:
+            self.fallback()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -375,9 +376,9 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.timer.stop()
             self.msgBox.exec_()
-            self.fallback()
 
         elif msg == _VID_WARNING:
+            self.fallback()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -385,34 +386,33 @@ class Window(QtWidgets.QMainWindow):
                                         + str(self.mediaPlayer.error()) + self.mediaPlayer.errorString())
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.fallback()
 
         elif msg == _CHROME_WARNING:
+            self.fallback()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Chromecast image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Maybe web site is down or your Internet connection is not available now")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.fallback()
 
         elif msg == _BING_WARNING:
+            self.fallback()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Bing image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Maybe web site is down or your Internet connection is not available now")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.fallback()
 
         elif msg == _YT_WARNING:
+            self.fallback()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("URL doesn't exist or it's malformed!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Be sure the URL exists and looks like 'https://youtube.com/watch?v=XXXXXXXXXXX'")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
-            self.fallback()
 
         elif msg == _HELP_MSG:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
