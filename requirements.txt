@@ -2,6 +2,8 @@ requests
 bs4
 PyQt5; sys_platform == 'windows'
 PyQtWebEngine; sys_platform == 'windows'
+pywin32; sys_platform == 'windows'
+pywintypes; sys_platform == 'windows'
 python3-PyQt5; sys_platform == 'linux'
 python3-PyQt5.PyQtWebEngine; sys_platform == 'linux'
 python3-PyQt5.PyQtMultiMedia; sys_platform == 'linux'

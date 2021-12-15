@@ -26,4 +26,4 @@ Run it, and right-click on the Jaaw! tray icon to access options menu:
 
 This module stores no images or videos from any web site or source of any kind. It just uses public links to show them as your wallpaper
 
-The application and tray icons are... well, horrible. I have no graphic design capabilities at all. Download or design your own! Don't forget to place them on "resources" folder and rename them accordingly
+The application and tray icons are... well, horrible. I have no graphic design capabilities at all. Download or design your own! Don't forget to place them on "resources" folder and rename them accordingly (Jaaw.ico, Jaaw.png)

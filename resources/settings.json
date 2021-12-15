@@ -1,0 +1,59 @@
+{
+    "Available_modes": [
+        "IMAGE",
+        "VIDEO",
+        "WEB"
+    ],
+    "mode": "VIDEO",
+    "Available_img_modes": [
+        "FIXED",
+        "CAROUSEL"
+    ],
+    "img_mode": "FIXED",
+    "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
+    "folder": ".",
+    "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
+    "Available_periods": {
+        "30 sec": 30,
+        "1 min": 60,
+        "2 min": 120,
+        "5 min": 300,
+        "15 min": 900,
+        "30 min": 1800,
+        "1 hour": 3600
+    },
+    "img_period": 120,
+    "Comment2": "Image to show when in IMAGE mode, and FIXED",
+    "img": "",
+    "Comment3": "Video to play when in VIDEO mode",
+    "Available_video_modes": [
+        "LOCAL",
+        "YOUTUBE"
+    ],
+    "video_mode": "YOUTUBE",
+    "video": "",
+    "yt_url": [
+        "https://youtube.com/watch?v=BHACKCNDMW8",
+        "https://youtube.com/watch?v=OhBo1A8atuA",
+        "https://youtube.com/watch?v=lM02vNMRRB0",
+        "https://youtube.com/watch?v=bx-0YlFprqc",
+        "https://youtube.com/watch?v=msnYBMdaB08",
+        "https://youtube.com/watch?v=_hHwz1UWJmI"
+    ],
+    "yt_index": 0,
+    "Comment4": "Video to play when in VIDEO mode",
+    "Available_web_modes": [
+        "CHROME",
+        "BING",
+        "URL"
+    ],
+    "web_mode": "URL",
+    "url": [
+        "https://nasa.gov",
+        "https://stackoverflow.com",
+        "https://twitch.tv"
+    ],
+    "url_index": 0,
+    "chrome_last": "",
+    "bing_last": ""
+}

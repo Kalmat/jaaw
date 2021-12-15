@@ -70,7 +70,7 @@ class Window(QtWidgets.QMainWindow):
         self.menu.reloadSettings.connect(self.reloadSettings)
         self.menu.closeAll.connect(self.closeAll)
         self.menu.showHelp.connect(self.showHelp)
-        self.menu.show()
+        # self.menu.show()
 
         if self.isWindows or self.isLinux:
             bkgutils.sendBehind(_CAPTION)
@@ -149,30 +149,22 @@ class Window(QtWidgets.QMainWindow):
         self.imgPeriod = self.config["img_period"]
         self.videoMode = self.config["video_mode"]
         self.video = self.config["video"]
+        self.prevVideo = None
+        self.ytUrl = ""
         index = self.config["yt_index"] if 0 <= self.config["yt_index"] < len(self.config["yt_url"]) else 0
-        self.ytUrl = self.config["yt_url"][index]
-        try:
-            ytRef = self.ytUrl.split("watch?v=")[1].split("&")[0]
-        except:
-            try:
-                ytRef = self.ytUrl.split("playlist=")[1].split("&")[0]
-            except:
-                ytRef = "BHACKCNDMW8"
-                self.showWarning(_YT_WARNING)
-        # Remove &qv=hd720 in case videos with lower quality do not load
-        self.ytUrlEmbed = "https://www.youtube.com/embed/%s?autoplay=1&loop=1&playlist=%s&mute=1&controls=0&rel=0&qv=hd720" \
-                          % (ytRef, ytRef)
+        if index < len(self.config["yt_url"]):
+            self.ytUrl = self.config["yt_url"][index]
         self.webMode = self.config["web_mode"]
         self.chromeLast = self.config["chrome_last"]
         self.bingLast = self.config["bing_last"]
+        self.url = ""
         index = self.config["url_index"] if 0 <= self.config["url_index"] < len(self.config["url"]) else 0
-        self.url = self.config["url"][index]
-
-        self.vidWarned = False
+        if index < len(self.config["url"]):
+            self.url = self.config["url"][index]
 
     @QtCore.pyqtSlot()
     def reloadSettings(self):
-        self.timer.stop()
+        self.hideAll()
         self.loadSettings()
         self.start()
 
@@ -197,7 +189,7 @@ class Window(QtWidgets.QMainWindow):
             if self.videoMode == _VIDLOCAL:
                 self.loadVideo(self.video)
             elif self.videoMode == _VIDYT:
-                self.loadWebPage(self.ytUrlEmbed)
+                self.loadYTVideo(self.ytUrl)
 
         elif self.wallPaperMode == _WEBMODE:
             if self.webMode == _CHROMEMODE:
@@ -212,26 +204,12 @@ class Window(QtWidgets.QMainWindow):
 
     def loadImg(self, img, keepAspect=True, expand=True):
 
-        error = False
-        if img:
-            pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
-            if not pixmap.isNull():
-                self.bkg_label.clear()
-                self.mediaPlayer.stop()
-                self.playlist.clear()
-                self.mediaPlayer.setPlaylist(self.playlist)
-                self.videoWidget.hide()
-                self.webView.stop()
-                self.webView.hide()
-                self.bkg_label.setPixmap(pixmap)
-                self.move(QtCore.QPoint(0, 0 + int((self.ymax - pixmap.height())/2)))
-                self.bkg_label.show()
-            else:
-                error = True
+        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
+        if not pixmap.isNull():
+            self.bkg_label.setPixmap(pixmap)
+            self.move(QtCore.QPoint(0, 0 + int((self.ymax - pixmap.height())/2)))
+            self.bkg_label.show()
         else:
-            error = True
-
-        if error:
             self.showWarning(_IMG_WARNING)
 
     def loadNextImg(self):
@@ -245,9 +223,6 @@ class Window(QtWidgets.QMainWindow):
         self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
         self.mediaPlayer.setPlaylist(self.playlist)
-        self.bkg_label.hide()
-        self.webView.stop()
-        self.webView.hide()
         self.setGeometry(QtCore.QRect(0, 0, self.xmax, self.ymax))
         self.videoWidget.show()
         self.mediaPlayer.play()
@@ -270,7 +245,6 @@ class Window(QtWidgets.QMainWindow):
             while not found and tries < 10:
                 img = self.chrome["chromecast"][index]["url"]
                 try:
-                    # self.webFrame.download(QtCore.QUrl(img), filename)
                     webutils.download(img, filename)
                     found = True
                 except:
@@ -292,7 +266,6 @@ class Window(QtWidgets.QMainWindow):
             self.bingLast = current
             img = webutils.getBingTodayImage()
             try:
-                # self.webFrame.download(QtCore.QUrl(img), filename)
                 webutils.download(img, filename)
             except:
                 images = webutils.getBingImages()
@@ -302,7 +275,6 @@ class Window(QtWidgets.QMainWindow):
                 tries = 0
                 while not found and tries < 10:
                     try:
-                        # self.webFrame.download(QtCore.QUrl(img), filename)
                         webutils.download(images[index], filename)
                         found = True
                     except:
@@ -314,17 +286,27 @@ class Window(QtWidgets.QMainWindow):
         else:
             self.showWarning(_BING_WARNING)
 
-    def loadWebPage(self, url):
-        self.bkg_label.hide()
-        self.videoWidget.hide()
-        self.mediaPlayer.stop()
-        self.playlist.clear()
-        self.mediaPlayer.setPlaylist(self.playlist)
-        self.webView.stop()
+    def loadYTVideo(self, url):
         try:
+            ytRef = url.split("watch?v=")[1].split("&")[0]
+        except:
+            try:
+                ytRef = url.split("playlist=")[1].split("&")[0]
+            except:
+                ytRef = "BHACKCNDMW8"
+                self.showWarning(_YT_WARNING)
+        # Remove &qv=hd720 in case videos with lower quality do not load
+        urlEmbed = "https://www.youtube.com/embed/%s?autoplay=1&loop=1&playlist=%s&mute=1&controls=0&rel=0&qv=hd720" \
+                   % (ytRef, ytRef)
+        self.loadWebPage(urlEmbed, isYTUrl=True)
+
+    def loadWebPage(self, url, isYTUrl=False):
+        if webutils.ping(url):
             self.webView.load(QtCore.QUrl(url))
             self.webView.show()
-        except:
+        elif isYTUrl:
+            self.showWarning(_YT_WARNING)
+        else:
             self.showWarning(_WEB_WARNING)
 
     @QtCore.pyqtSlot()
@@ -332,19 +314,23 @@ class Window(QtWidgets.QMainWindow):
         self.showWarning(_HELP_MSG)
 
     def handlePlayError(self):
-        if not self.vidWarned:
+        if self.video != self.prevVideo:
+            self.prevVideo = self.video
             self.showWarning(_VID_WARNING)
-            self.vidWarned = True
 
-    def fallback(self):
+    def hideAll(self):
+        self.bkg_label.clear()
         self.bkg_label.hide()
-        if self.mediaPlayer.isVideoAvailable():
-            self.mediaPlayer.stop()
+        self.timer.stop()
+        if self.mediaPlayer.isVideoAvailable(): self.mediaPlayer.stop()
         self.playlist.clear()
         self.mediaPlayer.setPlaylist(self.playlist)
         self.videoWidget.hide()
         self.webView.stop()
         self.webView.hide()
+
+    def fallback(self):
+        self.hideAll()
         self.setGeometry(0, 0, 1, 1)
 
     def showWarning(self, msg):
@@ -363,7 +349,8 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"
+                                        "Check the allowed image formats")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
@@ -372,9 +359,9 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one")
+            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"
+                                        "Check the allowed image formats")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
-            self.timer.stop()
             self.msgBox.exec_()
 
         elif msg == _VID_WARNING:
@@ -383,7 +370,8 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setText("Video not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"
-                                        + str(self.mediaPlayer.error()) + self.mediaPlayer.errorString())
+                                        "Not all video formats can be played out-of-the-box depending on the OS you're using. Be sure you installed all required codecs for the selected format\n"
+                                        + str(self.mediaPlayer.error()) + " " + self.mediaPlayer.errorString())
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
@@ -392,7 +380,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Chromecast image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Maybe web site is down or your Internet connection is not available now")
+            self.msgBox.setDetailedText("Maybe the web site is down or your Internet connection is not available now")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
@@ -401,23 +389,33 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Bing image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Maybe web site is down or your Internet connection is not available now")
+            self.msgBox.setDetailedText("Maybe the web site is down or your Internet connection is not available now")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
         elif msg == _YT_WARNING:
             self.fallback()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-            self.msgBox.setText("URL doesn't exist or it's malformed!")
+            self.msgBox.setText("Can't play video! Enjoy default video instead")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Be sure the URL exists and looks like 'https://youtube.com/watch?v=XXXXXXXXXXX'")
+            self.msgBox.setDetailedText("URL doesn't exist, it's malformed or video is not available to be watched embedded!\n"
+                                        "Be sure the URL exists and looks like 'https://youtube.com/watch?v=XXXXXXXXXXX'\n"
+                                        "It is also possible that the video can not be watched this way (embedded) according to YT rules")
+            self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
+            self.msgBox.exec_()
+
+        elif msg == _WEB_WARNING:
+            self.fallback()
+            self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
+            self.msgBox.setText("URL doesn't exist, it's malformed or it's unreachable")
+            self.msgBox.setWindowTitle("Jaaw! Warning")
+            self.msgBox.setDetailedText("Be sure the URL exists and it is reachable/responding now")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
         elif msg == _HELP_MSG:
             self.msgBox.setIcon(QtWidgets.QMessageBox.Information)
-            self.msgBox.setText("Right-click the Jaaw! icon in your system tray or taskbar "
-                                "to enter configuration settings")
+            self.msgBox.setText("Right-click the Jaaw! icon in your system tray or taskbar to enter configuration settings")
             self.msgBox.setWindowTitle("Jaaw! Help")
             self.msgBox.setDetailedText("Image mode will allow you to select one single image or a folder "
                                         "to show all images inside as a carousel, and its changing interval\n\n"
@@ -435,6 +433,9 @@ class Window(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def closeAll(self):
+        self.timer.stop()
+        if self.mediaPlayer.isVideoAvailable(): self.mediaPlayer.stop()
+        self.webView.stop()
         QtWidgets.QApplication.quit()
 
 

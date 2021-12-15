@@ -6,8 +6,8 @@ import utils
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 
-def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False, fullScreen=False, frameless=False,
-                transparentBkg=False, opacity=1, caption=None, icon=None, aot=False, aob=False):
+def initDisplay(parent, pos=(None, None), size=(None, None), setAsWallpaper=False, fullScreen=False, frameless=False,
+                transparentBkg=False, opacity=1, noFocus=False, caption=None, icon=None, aot=False, aob=False):
 
     if caption:
         parent.setWindowTitle(caption)
@@ -18,7 +18,7 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
     screen = QtWidgets.QApplication.primaryScreen()
     screenSize = screen.size()
 
-    if xmax >= screenSize.width() or ymax >= screenSize.height() or setAsWallpaper or fullScreen:
+    if setAsWallpaper or fullScreen:
         if setAsWallpaper:
             if "Linux" in platform.platform():
                 parent.setAttribute(QtCore.Qt.WA_X11NetWmWindowTypeDesktop)
@@ -29,6 +29,7 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
             parent.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
             parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnBottomHint | QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus)
         else:
+            parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus)
             parent.showFullScreen()
         xmax, ymax = screenSize.width(), screenSize.height()
     else:
@@ -37,19 +38,34 @@ def initDisplay(parent, pos=(None, None), size=(300, 300), setAsWallpaper=False,
         if pos[0] is not None and pos[1] is not None:
             x, y = pos
             parent.move(QtCore.QPoint(int(x), int(y)))
-        parent.setFixedSize(xmax, ymax)
+        if (xmax is not None and ymax is not None and (xmax < screenSize.width() or ymax < screenSize.height())) or \
+                xmax is None or ymax is None:
+            parent.setFixedSize(xmax, ymax)
+        else:
+            parent.showFullScreen()
+            xmax, ymax = screenSize.width(), screenSize.height()
 
     if aot:
-        flags = parent.windowFlags() | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint
+        flags = int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint
         parent.setWindowFlags(flags)
     elif aob and not setAsWallpaper:
-        flags = parent.windowFlags() | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnBottomHint
+        flags = int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus
+        parent.setWindowFlags(flags)
+
+    if noFocus:
+        if "Linux" in platform.platform():
+            parent.setAttribute(QtCore.Qt.WA_X11NetWmWindowTypeDesktop)
+            parent.setAttribute(QtCore.Qt.WA_X11DoNotAcceptFocus)
+        parent.setFocusPolicy(QtCore.Qt.NoFocus)
+        parent.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+        parent.setAttribute(QtCore.Qt.WA_InputMethodTransparent)
+        flags = int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus
         parent.setWindowFlags(flags)
 
     if transparentBkg:
         parent.setAttribute(QtCore.Qt.WA_NoSystemBackground, True)
         parent.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-        parent.setWindowFlags(parent.windowFlags() | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint)
+        parent.setWindowFlags(int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint)
     elif opacity != 1 and not transparentBkg:
         parent.setWindowOpacity(opacity)
 
