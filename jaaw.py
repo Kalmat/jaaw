@@ -1,25 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import json
 import os
 import platform
 import random
-import time
-import json
+import signal
 import sys
-import qtutils
+import time
+import traceback
+
 import bkgutils
+import qtutils
 import utils
 import webutils
 from PyQt5 import QtWidgets, QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWebEngineWidgets
-import signal
-import traceback
 
 _CAPTION = "Jaaw!"  # Just Another Animated Wallpaper!
-_CONFIG_ICON = utils.resource_path("resources/Jaaw.png")
-_SYSTEM_ICON = utils.resource_path("resources/Jaaw.ico")
-_ICON_SELECTED = utils.resource_path("resources/tick.png")
-_ICON_NOT_SELECTED = utils.resource_path("resources/notick.png")
+_CONFIG_ICON = utils.resource_path(__file__, "resources/Jaaw.png")
+_SYSTEM_ICON = utils.resource_path(__file__, "resources/Jaaw.ico")
+_ICON_SELECTED = utils.resource_path(__file__, "resources/tick.png")
+_ICON_NOT_SELECTED = utils.resource_path(__file__, "resources/notick.png")
 _SETTINGS_FILE = "settings.json"
 
 _IMGMODE = "IMAGE"
@@ -49,6 +50,7 @@ class Window(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         QtWidgets.QMainWindow.__init__(self, *args, **kwargs)
 
+        self.parent = self.parent()
         self.xmax, self.ymax = qtutils.getScreenSize()
         self.setupUi()
         qtutils.initDisplay(parent=self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION)
@@ -70,7 +72,7 @@ class Window(QtWidgets.QMainWindow):
         self.menu.reloadSettings.connect(self.reloadSettings)
         self.menu.closeAll.connect(self.closeAll)
         self.menu.showHelp.connect(self.showHelp)
-        # self.menu.show()
+        self.menu.show()
 
         if self.isWindows or self.isLinux:
             bkgutils.sendBehind(_CAPTION)
@@ -79,7 +81,6 @@ class Window(QtWidgets.QMainWindow):
     def setupUi(self):
 
         self.setGeometry(0, 0, self.xmax, self.ymax)
-        self.setStyleSheet("background-color:transparent")
 
         self.widget = QtWidgets.QWidget(self)
         self.widget.setGeometry(0, 0, self.xmax, self.ymax)
@@ -94,9 +95,6 @@ class Window(QtWidgets.QMainWindow):
         # Reduce CPU?
         #        Explorer.exe shell:appsFolder\Microsoft.ZuneVideo_8wekyb3d8bbwe!Microsoft.ZuneVideo
         #        https://stackoverflow.com/questions/57015932/how-to-attach-and-detach-an-external-app-with-pyqt5-or-dock-an-external-applicat
-        # LINUX: If you get this error: defaultServiceProvider::requestService(): no service found for - "org.qt-project.qt.mediaplayer"
-        #        Run: sudo apt-get install libqt5-multimedia-plugins
-        #        Also install all codecs: gstreamer-qt5, gstreamer-bad, gstreamer-ugly, ubuntu-restricted-extras, gstreamer-ffmpeg
         self.mediaPlayer = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
         self.mediaPlayer.setMuted(True)
         self.playlist = QtMultimedia.QMediaPlaylist()
@@ -104,7 +102,7 @@ class Window(QtWidgets.QMainWindow):
         self.videoWidget = QtMultimediaWidgets.QVideoWidget()
         self.videoWidget.hide()
         self.videoWidget.setGeometry(0, 0, self.xmax, self.ymax)
-        # Use this to adjust to the screen (but possibly distorting the video)
+        # Use this to adjust video (but possibly distorting the video)
         # self.videoWidget.setAspectRatioMode(QtCore.Qt.IgnoreAspectRatio)
         self.mediaPlayer.setVideoOutput(self.videoWidget)
         self.mediaPlayer.error.connect(self.handlePlayError)
@@ -130,7 +128,7 @@ class Window(QtWidgets.QMainWindow):
         if os.path.isfile(_SETTINGS_FILE):
             file = _SETTINGS_FILE
         else:
-            file = utils.resource_path("resources/" + _SETTINGS_FILE)
+            file = utils.resource_path(__file__, "resources/" + _SETTINGS_FILE)
 
         try:
             with open(file, encoding='UTF-8') as file:
@@ -231,7 +229,7 @@ class Window(QtWidgets.QMainWindow):
     def loadChrome(self):
         filename = "032k-8738jd7-00"
         if self.isMacOS:
-            filename = utils.resource_path(filename)
+            filename = utils.resource_path(__file__, filename)
         current = time.strftime("%Y%m%d")
         found = True
         if not os.path.isfile(filename) or self.chromeLast < current:
@@ -259,7 +257,7 @@ class Window(QtWidgets.QMainWindow):
     def loadBing(self):
         filename = "032k-8738jd7-01"
         if self.isMacOS:
-            filename = utils.resource_path(filename)
+            filename = utils.resource_path(__file__, filename)
         current = time.strftime("%Y%m%d")
         found = True
         if not os.path.isfile(filename) or self.bingLast < current:
@@ -301,7 +299,7 @@ class Window(QtWidgets.QMainWindow):
         self.loadWebPage(urlEmbed, isYTUrl=True)
 
     def loadWebPage(self, url, isYTUrl=False):
-        if webutils.ping(url):
+        if webutils.httpPing(url):
             self.webView.load(QtCore.QUrl(url))
             self.webView.show()
         elif isYTUrl:
@@ -433,6 +431,9 @@ class Window(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def closeAll(self):
+        self.setParent(self.parent)
+        self.hide()
+        self.clearMask()
         self.timer.stop()
         if self.mediaPlayer.isVideoAvailable(): self.mediaPlayer.stop()
         self.webView.stop()
@@ -763,7 +764,7 @@ class Config(QtWidgets.QWidget):
         if os.path.isfile(_SETTINGS_FILE):
             file = _SETTINGS_FILE
         else:
-            file = utils.resource_path("resources/" + _SETTINGS_FILE)
+            file = utils.resource_path(__file__, "resources/" + _SETTINGS_FILE)
         try:
             with open(file, "w", encoding='UTF-8') as file:
                 json.dump(self.config, file, ensure_ascii=False, sort_keys=False, indent=4)

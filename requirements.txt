@@ -1,14 +1,12 @@
-requests
-bs4
-PyQt5; sys_platform == 'windows'
-PyQtWebEngine; sys_platform == 'windows'
-pywin32; sys_platform == 'windows'
-pywintypes; sys_platform == 'windows'
+kalmatools==0.0.1
+PyQt5==5.15.4; sys_platform == 'windows'
+PyQtWebEngine==5.15.5; sys_platform == 'windows'
+pywin32==302; sys_platform == 'windows'
 python3-PyQt5; sys_platform == 'linux'
 python3-PyQt5.PyQtWebEngine; sys_platform == 'linux'
 python3-PyQt5.PyQtMultiMedia; sys_platform == 'linux'
-xlib; sys_platform == 'linux'
-pyuserinput; sys_platform == 'linux'
-PyQt5; sys_platform == 'darwin'
-PyQtWebEngine; sys_platform == 'darwin'
-pyobjc; sys_platform == 'darwin'
+xlib==0.21; sys_platform == 'linux'
+PyUserInput==0.1.11; sys_platform == 'linux'
+PyQt5==5.15.4; sys_platform == 'darwin'
+PyQtWebEngine==5.15.5; sys_platform == 'darwin'
+pyobjc==8.1; sys_platform == 'darwin'

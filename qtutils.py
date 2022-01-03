@@ -2,42 +2,40 @@
 # -*- coding: utf-8 -*-
 
 import platform
-import utils
 from PyQt5 import QtWidgets, QtCore, QtGui
+
+__version__ = "0.0.1"
 
 
 def initDisplay(parent, pos=(None, None), size=(None, None), setAsWallpaper=False, fullScreen=False, frameless=False,
-                transparentBkg=False, opacity=1, noFocus=False, caption=None, icon=None, aot=False, aob=False):
+                opacity=255, noFocus=False, caption=None, icon=None, aot=False, aob=False):
 
     if caption:
         parent.setWindowTitle(caption)
     if icon:
-        parent.setWindowIcon(QtGui.QIcon(utils.resource_path(icon)))
+        parent.setWindowIcon(QtGui.QIcon(icon))
 
     xmax, ymax = size
-    screen = QtWidgets.QApplication.primaryScreen()
-    screenSize = screen.size()
+    screenSize = QtWidgets.QApplication.primaryScreen().size()
 
     if setAsWallpaper or fullScreen:
         if setAsWallpaper:
+            noFocus = True
+            aot = False
+            aob = True
+            frameless = True
             if "Linux" in platform.platform():
                 parent.setAttribute(QtCore.Qt.WA_X11NetWmWindowTypeDesktop)
-                parent.setAttribute(QtCore.Qt.WA_X11DoNotAcceptFocus)
-            parent.setFocusPolicy(QtCore.Qt.NoFocus)
             parent.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
             parent.setAttribute(QtCore.Qt.WA_InputMethodTransparent)
             parent.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
-            parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnBottomHint | QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus)
+            parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnBottomHint)
         else:
-            parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus)
             parent.showFullScreen()
         xmax, ymax = screenSize.width(), screenSize.height()
     else:
-        if frameless:
-            parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint)
         if pos[0] is not None and pos[1] is not None:
-            x, y = pos
-            parent.move(QtCore.QPoint(int(x), int(y)))
+            parent.move(QtCore.QPoint(int(pos[0]), int(pos[1])))
         if (xmax is not None and ymax is not None and (xmax < screenSize.width() or ymax < screenSize.height())) or \
                 xmax is None or ymax is None:
             parent.setFixedSize(xmax, ymax)
@@ -48,26 +46,27 @@ def initDisplay(parent, pos=(None, None), size=(None, None), setAsWallpaper=Fals
     if aot:
         flags = int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint
         parent.setWindowFlags(flags)
-    elif aob and not setAsWallpaper:
-        flags = int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus
+    elif aob:
+        flags = int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnBottomHint
         parent.setWindowFlags(flags)
 
     if noFocus:
         if "Linux" in platform.platform():
-            parent.setAttribute(QtCore.Qt.WA_X11NetWmWindowTypeDesktop)
             parent.setAttribute(QtCore.Qt.WA_X11DoNotAcceptFocus)
         parent.setFocusPolicy(QtCore.Qt.NoFocus)
-        parent.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
-        parent.setAttribute(QtCore.Qt.WA_InputMethodTransparent)
         flags = int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowDoesNotAcceptFocus
         parent.setWindowFlags(flags)
 
-    if transparentBkg:
+    if opacity == 0:
         parent.setAttribute(QtCore.Qt.WA_NoSystemBackground, True)
         parent.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
         parent.setWindowFlags(int(parent.windowFlags()) | QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint)
-    elif opacity != 1 and not transparentBkg:
+        frameless = True
+    elif opacity != 255:
         parent.setWindowOpacity(opacity)
+
+    if frameless:
+        parent.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.FramelessWindowHint)
 
     return xmax, ymax
 
@@ -79,12 +78,203 @@ def getScreenSize():
 
 def loadFont(font):
     loadedFont = -1
-    fontId = QtGui.QFontDatabase.addApplicationFont(utils.resource_path(font))
+    fontId = QtGui.QFontDatabase.addApplicationFont(font)
     if fontId >= 0:
         families = QtGui.QFontDatabase.applicationFontFamilies(fontId)
         if len(families) > 0:
             loadedFont = QtGui.QFont(families[0])
     return loadedFont
+
+
+def sendKeys(parent, char="", qkey=None, modifier=QtCore.Qt.NoModifier, text=None):
+    # https://stackoverflow.com/questions/33758820/send-keystrokes-from-unicode-string-pyqt-pyside
+
+    if qkey:
+        char = qkey
+    elif char:
+        char = QtGui.QKeySequence.fromString(char)[0]
+    else:
+        return
+
+    if not text:
+        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, char, modifier)
+    else:
+        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, char, modifier, text)
+    QtCore.QCoreApplication.sendEvent(parent, event)
+
+
+def createImgFromText(text, font, bcolor=QtGui.QColor(QtCore.Qt.GlobalColor.black), fcolor=QtGui.QColor(QtCore.Qt.GlobalColor.white), saveFile=""):
+    # https://stackoverflow.com/questions/41904610/how-to-create-a-simple-image-qimage-with-text-and-colors-in-qt-and-save-it-as
+
+    fm = QtGui.QFontMetrics(font)
+    width = int(fm.width(text) * 1.06)
+    height = fm.height()
+    img = QtGui.QImage(QtCore.QSize(width, height), QtGui.QImage.Format_RGB32)
+    p = QtGui.QPainter(img)
+    p.setBrush(QtGui.QBrush(bcolor))
+    p.fillRect(QtCore.QRectF(0, 0, width, height), bcolor)
+    p.setPen(QtGui.QPen(fcolor))
+    p.setFont(font)
+    p.drawText(QtCore.QRectF(0, 0, width, height), text)
+    if saveFile:
+        img.save(saveFile)
+    return img
+
+
+def resizeImageWithQT(img, width, height, keepAspectRatio=True, expand=True):
+
+    pixmap_resized = QtGui.QPixmap()
+    pixmap = QtGui.QPixmap(img)
+
+    if not pixmap.isNull():
+        if keepAspectRatio:
+            if expand:
+                flag = QtCore.Qt.KeepAspectRatioByExpanding
+            else:
+                flag = QtCore.Qt.KeepAspectRatio
+        else:
+            flag = QtCore.Qt.IgnoreAspectRatio
+        pixmap_resized = pixmap.scaled(int(width), int(height), flag, QtCore.Qt.SmoothTransformation)
+    return pixmap_resized
+
+
+def getColor(styleSheet):
+    props = styleSheet.replace("\n", "").split(";")
+    for prop in props:
+        if prop[:6] == "color:":
+            return prop
+    color = QtGui.QColor(QtGui.QPalette().color(QtGui.QPalette.Normal, QtGui.QPalette.Window))
+    return "color:rgba(%i, %i, %i, %i)" % (color.red(), color.green(), color.blue(), color.alpha())
+
+
+def setColor(styleSheet, RGBcolor):
+    newStyleSheet = ""
+    props = styleSheet.replace("\n", "").split(";")
+    for prop in props:
+        if prop and prop[:6] != "color:":
+                newStyleSheet += prop + ";"
+    newStyleSheet += "color:" + RGBcolor + ";"
+    return newStyleSheet
+
+
+def setColorAlpha(styleSheet, newAlpha):
+    newStyleSheet = ""
+    props = styleSheet.replace("\n", "").split(";")
+    for prop in props:
+        if prop[:6] == "color:":
+            values = prop.split(",")
+            values[0] = values[0].replace("rgb(", "rgba(")
+            prop = values[0] + "," + values[1] + "," + values[2] + "," + str(newAlpha) + ")"
+        if prop:
+            newStyleSheet += prop + ";"
+    return newStyleSheet
+
+
+def getBkgColor(styleSheet):
+    props = styleSheet.replace("\n", "").split(";")
+    for prop in props:
+        if prop[:17] == "background-color:":
+            return prop
+    color = QtGui.QColor(QtGui.QPalette().color(QtGui.QPalette.Normal, QtGui.QPalette.WindowText))
+    return "background-color:rgba(%i, %i, %i, %i)" % (color.red(), color.green(), color.blue(), color.alpha())
+
+
+def setBkgColor(styleSheet, RGBcolor):
+    newStyleSheet = ""
+    props = styleSheet.replace("\n", "").split(";")
+    for prop in props:
+        if prop and prop[:17] != "background-color:":
+            newStyleSheet += prop + ";"
+    newStyleSheet += "background-color:" + RGBcolor + ";"
+    return newStyleSheet
+
+
+def setBkgColorAlpha(styleSheet, newAlpha):
+    newStyleSheet = ""
+    props = styleSheet.replace("\n", "").split(";")
+    for prop in props:
+        if prop[:17] == "background-color:":
+            values = prop.split(",")
+            values[0] = values[0].replace("rgb(", "rgba(")
+            prop = values[0] + "," + values[1] + "," + values[2] + "," + str(newAlpha) + ")"
+        if prop:
+            newStyleSheet += prop + ";"
+    return newStyleSheet
+
+
+def setStyleSheet(styleSheet, bkgRGBcolor, fontRGBcolor):
+    newStyleSheet = "background-color:" + bkgRGBcolor + ";" + "color:" + fontRGBcolor + ";"
+    props = styleSheet.replace("\n", "").split(";")
+    for prop in props:
+        if prop and prop[:17] != "background-color:" and prop[:6] != "color:":
+            newStyleSheet += prop + ";"
+    return newStyleSheet
+
+
+def getRGBAfromColorName(name):
+    color = QtGui.QColor(name)
+    return "rgba(%i, %i, %i, %i)" % (color.red(), color.green(), color.blue(), color.alpha())
+
+
+def getRGBAfromColorRGB(color):
+    colorRGB = color.replace("rgba(", "").replace("rgb(", "").replace(")", ""). split(",")
+    r = int(colorRGB[0])
+    g = int(colorRGB[1])
+    b = int(colorRGB[2])
+    if len(colorRGB) > 3:
+        a = int(colorRGB[3])
+    else:
+        a = 255
+    return r, g, b, a
+
+
+def setHTMLStyle(text, color=None, bkgcolor=None, font=None, fontSize=None, align=None, valign=None, strong=False):
+
+    colorHTML = bkgcolorHTML = fontHTML = fontSizeHTML = alignHTML = valignHTML = ""
+    if color:
+        if "rgb" in color:
+            colorRGB = color.replace("rgba(", "").replace("rgb(", "").replace(")", ""). split(",")
+            r = "%0.2X" % int(colorRGB[0])
+            g = "%0.2X" % int(colorRGB[1])
+            b = "%0.2X" % int(colorRGB[2])
+            colorHTML = "color:#%s;" % (r+g+b)
+        else:
+            colorHTML = "color:%s;" % color
+    if bkgcolor:
+        if "rgb" in bkgcolor:
+            bkgcolorRGB = bkgcolor.replace("rgba(", "").replace("rgb(", "").replace(")", "").split(",")
+            r = "%0.2X" % int(bkgcolorRGB[0])
+            g = "%0.2X" % int(bkgcolorRGB[1])
+            b = "%0.2X" % int(bkgcolorRGB[2])
+            bkgcolorHTML = "background-color:#%s;" % (r + g + b)
+        else:
+            bkgcolorHTML = "background-color:%s;" % bkgcolor
+    if font:
+        fontHTML = "font-family:%s;" % font
+    if fontSize:
+        fontSizeHTML = "font-size:%ipx;" % fontSize
+    if align:
+        alignHTML = "text-align:%s;" % align
+    if valign:
+        valignHTML = "vertical-align:%s;" % valign
+    marginHTML = "margin-top:-10%;"
+    if strong:
+        style = "<span style=\"%s%s%s%s%s%s\"><strong>%s</strong></span>" % (colorHTML, bkgcolorHTML, fontHTML, fontSizeHTML, alignHTML, valignHTML, text)
+    else:
+        style = "<span style=\"%s%s%s%s%s%s%s\">%s</span>" % (marginHTML, bkgcolorHTML, colorHTML, fontHTML, fontSizeHTML, alignHTML, valignHTML, text)
+    return style
+
+
+def getQColorFromRGB(color):
+    rgb = color.replace("background-color:", "").replace("color:", "").replace("rgba(", "").replace("rgb(", "").replace(")", "").split(",")
+    r = int(rgb[0])
+    g = int(rgb[1])
+    b = int(rgb[2])
+    if len(rgb) > 3:
+        a = int(rgb[3])
+    else:
+        a = 255
+    return QtGui.QColor(r, g, b, a)
 
 
 class Marquee(QtWidgets.QLabel):
@@ -134,8 +324,8 @@ class Marquee(QtWidgets.QLabel):
 
         if self._smooth:
 
-            bcolor = getQColorfromRGB(getBkgColor(self.styleSheet()))
-            fcolor = getQColorfromRGB(getColor(self.styleSheet()))
+            bcolor = getQColorFromRGB(getBkgColor(self.styleSheet()))
+            fcolor = getQColorFromRGB(getColor(self.styleSheet()))
             img = QtGui.QPixmap(createImgFromText(text, font=self.font(), bcolor=bcolor, fcolor=fcolor))
             self.setPixmap(img)
             self.setFixedWidth(img.width())
@@ -350,194 +540,3 @@ class Clock(QtWidgets.QLabel):
     def stop(self):
         self.timer.stop()
         self.clear()
-
-
-def sendkeys(parent, char="", qkey=None, modifier=QtCore.Qt.NoModifier, text=None):
-    # https://stackoverflow.com/questions/33758820/send-keystrokes-from-unicode-string-pyqt-pyside
-
-    if qkey:
-        char = qkey
-    elif char:
-        char = QtGui.QKeySequence.fromString(char)[0]
-    else:
-        return
-
-    if not text:
-        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, char, modifier)
-    else:
-        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, char, modifier, text)
-    QtCore.QCoreApplication.sendEvent(parent, event)
-
-
-def createImgFromText(text, font, bcolor=QtGui.QColor(QtCore.Qt.black), fcolor=QtGui.QColor(QtCore.Qt.white), saveFile=""):
-    # https://stackoverflow.com/questions/41904610/how-to-create-a-simple-image-qimage-with-text-and-colors-in-qt-and-save-it-as
-
-    fm = QtGui.QFontMetrics(font)
-    width = int(fm.width(text) * 1.06)
-    height = fm.height()
-    img = QtGui.QImage(QtCore.QSize(width, height), QtGui.QImage.Format_RGB32)
-    p = QtGui.QPainter(img)
-    p.setBrush(QtGui.QBrush(bcolor))
-    p.fillRect(QtCore.QRectF(0, 0, width, height), bcolor)
-    p.setPen(QtGui.QPen(fcolor))
-    p.setFont(font)
-    p.drawText(QtCore.QRectF(0, 0, width, height), text)
-    if saveFile:
-        img.save(saveFile)
-    return img
-
-
-def resizeImageWithQT(src, width, height, keepAspectRatio=True, expand=True):
-
-    pixmap_resized = QtGui.QPixmap()
-    pixmap = QtGui.QPixmap(src)
-
-    if not pixmap.isNull():
-        if keepAspectRatio:
-            if expand:
-                flag = QtCore.Qt.KeepAspectRatioByExpanding
-            else:
-                flag = QtCore.Qt.KeepAspectRatio
-        else:
-            flag = QtCore.Qt.IgnoreAspectRatio
-        pixmap_resized = pixmap.scaled(int(width), int(height), flag, QtCore.Qt.SmoothTransformation)
-    return pixmap_resized
-
-
-def getColor(styleSheet):
-    props = styleSheet.replace("\n", "").split(";")
-    for prop in props:
-        if prop[:6] == "color:":
-            return prop
-    color = QtGui.QColor(QtGui.QPalette().color(QtGui.QPalette.Normal, QtGui.QPalette.Window))
-    return "color:rgba(%i, %i, %i, %i)" % (color.red(), color.green(), color.blue(), color.alpha())
-
-
-def setColor(styleSheet, RGBcolor):
-    newStyleSheet = ""
-    props = styleSheet.replace("\n", "").split(";")
-    for prop in props:
-        if prop and prop[:6] != "color:":
-                newStyleSheet += prop + ";"
-    newStyleSheet += "color:" + RGBcolor + ";"
-    return newStyleSheet
-
-
-def setColorAlpha(styleSheet, newAlpha):
-    newStyleSheet = ""
-    props = styleSheet.replace("\n", "").split(";")
-    for prop in props:
-        if prop[:6] == "color:":
-            values = prop.split(",")
-            values[0] = values[0].replace("rgb(", "rgba(")
-            prop = values[0] + "," + values[1] + "," + values[2] + "," + str(newAlpha) + ")"
-        if prop:
-            newStyleSheet += prop + ";"
-    return newStyleSheet
-
-
-def getBkgColor(styleSheet):
-    props = styleSheet.replace("\n", "").split(";")
-    for prop in props:
-        if prop[:17] == "background-color:":
-            return prop
-    color = QtGui.QColor(QtGui.QPalette().color(QtGui.QPalette.Normal, QtGui.QPalette.WindowText))
-    return "background-color:rgba(%i, %i, %i, %i)" % (color.red(), color.green(), color.blue(), color.alpha())
-
-
-def setBkGColor(styleSheet, RGBcolor):
-    newStyleSheet = ""
-    props = styleSheet.replace("\n", "").split(";")
-    for prop in props:
-        if prop and prop[:17] != "background-color:":
-            newStyleSheet += prop + ";"
-    newStyleSheet += "background-color:" + RGBcolor + ";"
-    return newStyleSheet
-
-
-def setBkGColorAlpha(styleSheet, newAlpha):
-    newStyleSheet = ""
-    props = styleSheet.replace("\n", "").split(";")
-    for prop in props:
-        if prop[:17] == "background-color:":
-            values = prop.split(",")
-            values[0] = values[0].replace("rgb(", "rgba(")
-            prop = values[0] + "," + values[1] + "," + values[2] + "," + str(newAlpha) + ")"
-        if prop:
-            newStyleSheet += prop + ";"
-    return newStyleSheet
-
-
-def setStyleSheet(styleSheet, bkgRGBcolor, fontRGBcolor):
-    newStyleSheet = "background-color:" + bkgRGBcolor + ";" + "color:" + fontRGBcolor + ";"
-    props = styleSheet.replace("\n", "").split(";")
-    for prop in props:
-        if prop and prop[:17] != "background-color:" and prop[:6] != "color:":
-            newStyleSheet += prop + ";"
-    return newStyleSheet
-
-
-def getRGBAfromColorName(name):
-    color = QtGui.QColor(name)
-    return "rgba(%i, %i, %i, %i)" % (color.red(), color.green(), color.blue(), color.alpha())
-
-
-def getRGBAfromColorRGB(color):
-    colorRGB = color.replace("rgba(", "").replace("rgb(", "").replace(")", ""). split(",")
-    r = int(colorRGB[0])
-    g = int(colorRGB[1])
-    b = int(colorRGB[2])
-    if len(colorRGB) > 3:
-        a = int(colorRGB[3])
-    else:
-        a = 255
-    return r, g, b, a
-
-
-def setHTMLStyle(text, color=None, bkgcolor=None, font=None, fontSize=None, align=None, valign=None, strong=False):
-
-    colorHTML = bkgcolorHTML = fontHTML = fontSizeHTML = alignHTML = valignHTML = ""
-    if color:
-        if "rgb" in color:
-            colorRGB = color.replace("rgba(", "").replace("rgb(", "").replace(")", ""). split(",")
-            r = "%0.2X" % int(colorRGB[0])
-            g = "%0.2X" % int(colorRGB[1])
-            b = "%0.2X" % int(colorRGB[2])
-            colorHTML = "color:#%s;" % (r+g+b)
-        else:
-            colorHTML = "color:%s;" % color
-    if bkgcolor:
-        if "rgb" in bkgcolor:
-            bkgcolorRGB = bkgcolor.replace("rgba(", "").replace("rgb(", "").replace(")", "").split(",")
-            r = "%0.2X" % int(bkgcolorRGB[0])
-            g = "%0.2X" % int(bkgcolorRGB[1])
-            b = "%0.2X" % int(bkgcolorRGB[2])
-            bkgcolorHTML = "background-color:#%s;" % (r + g + b)
-        else:
-            bkgcolorHTML = "background-color:%s;" % bkgcolor
-    if font:
-        fontHTML = "font-family:%s;" % font
-    if fontSize:
-        fontSizeHTML = "font-size:%ipx;" % fontSize
-    if align:
-        alignHTML = "text-align:%s;" % align
-    if valign:
-        valignHTML = "vertical-align:%s;" % valign
-    marginHTML = "margin-top:-10%;"
-    if strong:
-        style = "<span style=\"%s%s%s%s%s%s\"><strong>%s</strong></span>" % (colorHTML, bkgcolorHTML, fontHTML, fontSizeHTML, alignHTML, valignHTML, text)
-    else:
-        style = "<span style=\"%s%s%s%s%s%s%s\">%s</span>" % (marginHTML, bkgcolorHTML, colorHTML, fontHTML, fontSizeHTML, alignHTML, valignHTML, text)
-    return style
-
-
-def getQColorfromRGB(color):
-    rgb = color.replace("background-color:", "").replace("color:", "").replace("rgba(", "").replace("rgb(", "").replace(")", "").split(",")
-    r = int(rgb[0])
-    g = int(rgb[1])
-    b = int(rgb[2])
-    if len(rgb) > 3:
-        a = int(rgb[3])
-    else:
-        a = 255
-    return QtGui.QColor(r, g, b, a)

@@ -8,6 +8,14 @@ It will allow you to customize your desktop wallpaper, using an image, a folder 
 
 Furthermore, you won't need any Admin privileges to install it (it's fully portable) or use it.
 
+## Requires
+
+KalmaTools v.0.0.1 or higher, that you can find here: https://bitbucket.org/Kalmat/kalmatools
+
+Download the wheel file located on dist folder, and install it on your system or virtual environment (venv) using:
+
+    pip install kalmatools-0.0.1-py3-none-any.whl
+
 ## How to use it
 
 Run it, and right-click on the Jaaw! tray icon to access options menu:
@@ -27,3 +35,16 @@ Run it, and right-click on the Jaaw! tray icon to access options menu:
 This module stores no images or videos from any web site or source of any kind. It just uses public links to show them as your wallpaper
 
 The application and tray icons are... well, horrible. I have no graphic design capabilities at all. Download or design your own! Don't forget to place them on "resources" folder and rename them accordingly (Jaaw.ico, Jaaw.png)
+
+#### LINUX WARNING
+
+If you get this error: 
+
+    defaultServiceProvider::requestService(): no service found for - "org.qt-project.qt.mediaplayer"
+
+- Install pyqt5 plugins (run this on a terminal):
+
+
+    sudo apt-get install libqt5-multimedia-plugins
+
+- Also install all codecs from App Store: gstreamer-qt5, gstreamer-bad, gstreamer-ugly, ubuntu-restricted-extras, gstreamer-ffmpeg
