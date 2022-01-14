@@ -44,27 +44,26 @@ _BING_WARNING = 7
 _WEB_WARNING = 8
 _HELP_MSG = 9
 
+_IS_WINDOWS = "Windows" in platform.platform()
+_IS_LINUX = "Linux" in platform.platform()
+_IS_MACOS = "macOS" in platform.platform() or "Darwin" in platform.platform()
+
 
 class Window(QtWidgets.QMainWindow):
 
     def __init__(self, *args, **kwargs):
         QtWidgets.QMainWindow.__init__(self, *args, **kwargs)
 
-        self.parent = self.parent()
         self.xmax, self.ymax = qtutils.getScreenSize()
         self.setupUi()
-        qtutils.initDisplay(parent=self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION)
-
-        self.isWindows = "Windows" in platform.platform()
-        self.isLinux = "Linux" in platform.platform()
-        self.isMacOS = "macOS" in platform.platform() or "Darwin" in platform.platform()
+        qtutils.initDisplay(parent=self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION, opacity=0)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
 
         self.imgList = []
         self.imgIndex = 0
-        self.chrome = {"chromecast": []}
+        self.chrome = dict({"chromecast": []})
 
         self.loadSettings()
 
@@ -74,7 +73,7 @@ class Window(QtWidgets.QMainWindow):
         self.menu.showHelp.connect(self.showHelp)
         self.menu.show()
 
-        if self.isWindows or self.isLinux:
+        if _IS_WINDOWS or _IS_LINUX:
             bkgutils.sendBehind(_CAPTION)
         self.start()
 
@@ -90,7 +89,8 @@ class Window(QtWidgets.QMainWindow):
         self.bkg_label = QtWidgets.QLabel()
         self.bkg_label.hide()
         self.bkg_label.setGeometry(0, 0, self.xmax, self.ymax)
-        self.bkg_label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        self.bkg_label.setStyleSheet("background-color:black")
+        # self.bkg_label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
         # Reduce CPU?
         #        Explorer.exe shell:appsFolder\Microsoft.ZuneVideo_8wekyb3d8bbwe!Microsoft.ZuneVideo
@@ -102,7 +102,8 @@ class Window(QtWidgets.QMainWindow):
         self.videoWidget = QtMultimediaWidgets.QVideoWidget()
         self.videoWidget.hide()
         self.videoWidget.setGeometry(0, 0, self.xmax, self.ymax)
-        # Use this to adjust video (but possibly distorting the video)
+        self.videoWidget.setStyleSheet("background-color:black")
+        # Use this to stretch video to screen (but distorting it)
         # self.videoWidget.setAspectRatioMode(QtCore.Qt.IgnoreAspectRatio)
         self.mediaPlayer.setVideoOutput(self.videoWidget)
         self.mediaPlayer.error.connect(self.handlePlayError)
@@ -110,9 +111,10 @@ class Window(QtWidgets.QMainWindow):
         self.webView = QtWebEngineWidgets.QWebEngineView()
         self.webView.hide()
         self.webView.setGeometry(0, 0, self.xmax, self.ymax)
+        self.webView.setStyleSheet("background-color:black")
         self.webFrame = self.webView.page()
         self.webFrame.setAudioMuted(True)
-        # Use this to adjust page/video to screen (but possibly cutting the page/video)
+        # Use this to stretch page/video to screen (but possibly cutting the page/video)
         # self.webFrame.setZoomFactor(1.5)
 
         self.myLayout.addWidget(self.bkg_label)
@@ -171,15 +173,12 @@ class Window(QtWidgets.QMainWindow):
         self.setGeometry(0, 0, self.xmax, self.ymax)
 
         if self.wallPaperMode == _IMGMODE:
-
-            if self.imgMode == _IMGCAROUSEL:
+            if self.imgMode == _IMGFIXED:
+                self.loadImg(self.img)
+            elif self.imgMode == _IMGCAROUSEL:
                 self.imgList = utils.getFilesInFolder(self.contentFolder, ("png", "jpg", "jpeg", "bmp"))
                 self.timer.start(self.imgPeriod * 1000)
                 self.loadNextImg()
-
-            elif self.imgMode == _IMGFIXED:
-                self.loadImg(self.img)
-
             else:
                 self.showWarning(_SETTINGS_WARNING)
 
@@ -188,6 +187,8 @@ class Window(QtWidgets.QMainWindow):
                 self.loadVideo(self.video)
             elif self.videoMode == _VIDYT:
                 self.loadYTVideo(self.ytUrl)
+            else:
+                self.showWarning(_SETTINGS_WARNING)
 
         elif self.wallPaperMode == _WEBMODE:
             if self.webMode == _CHROMEMODE:
@@ -196,6 +197,8 @@ class Window(QtWidgets.QMainWindow):
                 self.loadBing()
             elif self.webMode == _URLMODE:
                 self.loadWebPage(self.url)
+            else:
+                self.showWarning(_SETTINGS_WARNING)
 
         else:
             self.showWarning(_SETTINGS_WARNING)
@@ -204,8 +207,14 @@ class Window(QtWidgets.QMainWindow):
 
         pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
         if not pixmap.isNull():
+            self.bkg_label.clear()
+            x = min(0, int((self.xmax - pixmap.width()) / 2))
+            y = min(0, int((self.ymax - pixmap.height()) / 2))
+            w = max(self.xmax, pixmap.width())
+            h = max(self.ymax, pixmap.height())
+            self.move(QtCore.QPoint(x, y))
+            self.setFixedSize(w, h)
             self.bkg_label.setPixmap(pixmap)
-            self.move(QtCore.QPoint(0, 0 + int((self.ymax - pixmap.height())/2)))
             self.bkg_label.show()
         else:
             self.showWarning(_IMG_WARNING)
@@ -221,14 +230,16 @@ class Window(QtWidgets.QMainWindow):
         self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
         self.mediaPlayer.setPlaylist(self.playlist)
-        self.setGeometry(QtCore.QRect(0, 0, self.xmax, self.ymax))
+        self.move(QtCore.QPoint(0, 0))
+        self.setFixedSize(self.xmax, self.ymax)
+        self.videoWidget.setGeometry(QtCore.QRect(0, 0, self.xmax, self.ymax))
         self.videoWidget.show()
         self.mediaPlayer.play()
         self.videoWidget.setGeometry(QtCore.QRect(0, 0, self.xmax, self.ymax))
 
     def loadChrome(self):
         filename = "032k-8738jd7-00"
-        if self.isMacOS:
+        if _IS_MACOS:
             filename = utils.resource_path(__file__, filename)
         current = time.strftime("%Y%m%d")
         found = True
@@ -237,16 +248,15 @@ class Window(QtWidgets.QMainWindow):
             if not self.chrome["chromecast"]:
                 self.chrome = webutils.getChromecastImages()
             rand = random.Random()
-            index = rand.randint(0, len(self.chrome["chromecast"]))
             found = False
             tries = 0
             while not found and tries < 10:
+                index = rand.randint(0, len(self.chrome["chromecast"]))
                 img = self.chrome["chromecast"][index]["url"]
                 try:
                     webutils.download(img, filename)
                     found = True
                 except:
-                    index = rand.randint(0, len(self.chrome["chromecast"]))
                     tries += 1
         if found:
             self.loadImg(filename)
@@ -256,7 +266,7 @@ class Window(QtWidgets.QMainWindow):
 
     def loadBing(self):
         filename = "032k-8738jd7-01"
-        if self.isMacOS:
+        if _IS_MACOS:
             filename = utils.resource_path(__file__, filename)
         current = time.strftime("%Y%m%d")
         found = True
@@ -268,15 +278,14 @@ class Window(QtWidgets.QMainWindow):
             except:
                 images = webutils.getBingImages()
                 rand = random.Random()
-                index = rand.randint(0, len(images))
                 found = False
                 tries = 0
                 while not found and tries < 10:
+                    index = rand.randint(0, len(images))
                     try:
                         webutils.download(images[index], filename)
                         found = True
                     except:
-                        index = rand.randint(0, len(images))
                         tries += 1
         if found:
             self.loadImg(filename)
@@ -300,6 +309,7 @@ class Window(QtWidgets.QMainWindow):
 
     def loadWebPage(self, url, isYTUrl=False):
         if webutils.httpPing(url):
+            self.webView.stop()
             self.webView.load(QtCore.QUrl(url))
             self.webView.show()
         elif isYTUrl:
@@ -311,30 +321,10 @@ class Window(QtWidgets.QMainWindow):
     def showHelp(self):
         self.showWarning(_HELP_MSG)
 
-    def handlePlayError(self):
-        if self.video != self.prevVideo:
-            self.prevVideo = self.video
-            self.showWarning(_VID_WARNING)
-
-    def hideAll(self):
-        self.bkg_label.clear()
-        self.bkg_label.hide()
-        self.timer.stop()
-        if self.mediaPlayer.isVideoAvailable(): self.mediaPlayer.stop()
-        self.playlist.clear()
-        self.mediaPlayer.setPlaylist(self.playlist)
-        self.videoWidget.hide()
-        self.webView.stop()
-        self.webView.hide()
-
-    def fallback(self):
-        self.hideAll()
-        self.setGeometry(0, 0, 1, 1)
-
     def showWarning(self, msg):
 
         if msg == _SETTINGS_WARNING:
-            self.fallback()
+            self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Configure your own settings and media to use as wallpaper\n"
                                 "Right-click the Jaaw! tray icon to open settings")
@@ -343,7 +333,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _IMG_WARNING:
-            self.fallback()
+            self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -353,7 +343,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _FOLDER_WARNING:
-            self.fallback()
+            self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -363,7 +353,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _VID_WARNING:
-            self.fallback()
+            self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -374,7 +364,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _CHROME_WARNING:
-            self.fallback()
+            self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Chromecast image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -383,7 +373,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _BING_WARNING:
-            self.fallback()
+            self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Unable to download Bing image!")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -392,7 +382,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _YT_WARNING:
-            self.fallback()
+            self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Can't play video! Enjoy default video instead")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -403,7 +393,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.exec_()
 
         elif msg == _WEB_WARNING:
-            self.fallback()
+            self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("URL doesn't exist, it's malformed or it's unreachable")
             self.msgBox.setWindowTitle("Jaaw! Warning")
@@ -425,18 +415,25 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
-    def closeEvent(self, event):
-        self.closeAll()
-        super(Window, self).closeEvent(event)
+    def handlePlayError(self):
+        if self.video != self.prevVideo:
+            self.prevVideo = self.video
+            self.showWarning(_VID_WARNING)
+
+    def hideAll(self):
+        self.bkg_label.clear()
+        self.bkg_label.hide()
+        self.timer.stop()
+        if self.mediaPlayer.isVideoAvailable(): self.mediaPlayer.stop()
+        self.playlist.clear()
+        self.mediaPlayer.setPlaylist(self.playlist)
+        self.videoWidget.hide()
+        self.webView.stop()
+        self.webView.hide()
 
     @QtCore.pyqtSlot()
     def closeAll(self):
-        self.setParent(self.parent)
-        self.hide()
-        self.clearMask()
-        self.timer.stop()
-        if self.mediaPlayer.isVideoAvailable(): self.mediaPlayer.stop()
-        self.webView.stop()
+        # QtCore.QCoreApplication.instance().quit()
         QtWidgets.QApplication.quit()
 
 
@@ -449,10 +446,6 @@ class Config(QtWidgets.QWidget):
     def __init__(self, parent, config):
         QtWidgets.QWidget.__init__(self, parent)
 
-        self.isWindows = "Windows" in platform.platform()
-        self.isLinux = "Linux" in platform.platform()
-        self.isMacOS = "macOS" in platform.platform() or "Darwin" in platform.platform()
-
         self.config = config
         self.setupUI()
 
@@ -464,7 +457,7 @@ class Config(QtWidgets.QWidget):
         self.iconNotSelected = QtGui.QIcon(_ICON_NOT_SELECTED)
 
         self.contextMenu = QtWidgets.QMenu(self)
-        if self.isWindows:
+        if _IS_WINDOWS:
             self.contextMenu.setStyleSheet("""
                 QMenu {border: 1px inset #666; font-size: 18px; background-color: #333; color: #fff; padding: 10px;}
                 QMenu:selected {background-color: #666; color: #fff;}""")
@@ -761,7 +754,7 @@ class Config(QtWidgets.QWidget):
 
     def saveSettings(self, reload=True):
 
-        if os.path.isfile(_SETTINGS_FILE):
+        if not _IS_MACOS:
             file = _SETTINGS_FILE
         else:
             file = utils.resource_path(__file__, "resources/" + _SETTINGS_FILE)
@@ -808,8 +801,8 @@ if __name__ == "__main__":
         sys.excepthook = exception_hook
     win = Window()
     win.show()
-    if "macOS" in platform.platform() or "Darwin" in platform.platform():  # Not working if executed before win.show() or after app.exec_()
-       bkgutils.sendBehind(_CAPTION)
+    if _IS_MACOS:  # Not working if executed before win.show() or after app.exec_()
+        bkgutils.sendBehind(_CAPTION)
     try:
         app.exec_()
     except:
