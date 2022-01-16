@@ -56,7 +56,7 @@ class Window(QtWidgets.QMainWindow):
 
         self.xmax, self.ymax = qtutils.getScreenSize()
         self.setupUi()
-        qtutils.initDisplay(parent=self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION)
+        qtutils.initDisplay(self, setAsWallpaper=True, opacity=0, icon=_SYSTEM_ICON, caption=_CAPTION)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
@@ -212,8 +212,8 @@ class Window(QtWidgets.QMainWindow):
             y = min(0, int((self.ymax - pixmap.height()) / 2))
             w = max(self.xmax, pixmap.width())
             h = max(self.ymax, pixmap.height())
-            self.move(x, y)
             self.setFixedSize(w, h)
+            self.move(x, y)
             self.bkg_label.setPixmap(pixmap)
             self.bkg_label.show()
         else:
@@ -227,12 +227,12 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(_FOLDER_WARNING)
 
     def loadVideo(self, video):
+        self.hideAll()
         self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
         self.mediaPlayer.setPlaylist(self.playlist)
-        self.move(0, 0)
         self.setFixedSize(self.xmax, self.ymax)
-        self.showFullScreen()
+        self.move(0, 0)
         # These two setGeometry() is a weird hack to avoid video stretching
         self.videoWidget.setGeometry(0, 0, self.xmax, self.ymax)
         self.videoWidget.show()
@@ -312,13 +312,12 @@ class Window(QtWidgets.QMainWindow):
     def loadWebPage(self, url, isYTUrl=False):
         if webutils.httpPing(url):
             self.webView.stop()
-            # showFullScreen() to avoid a gap on upper side
-            self.showFullScreen()
-            # move() and setFixedSize() to avoid YT video being stretched after showFullScreen()
-            self.move(0, 0)
+            # First resize, then move or a gap may show up on the upper side of the screen
             self.setFixedSize(self.xmax, self.ymax)
+            self.move(0, 0)
             self.webView.load(QtCore.QUrl(url))
             self.webView.show()
+            bkgutils.sendBehind(_CAPTION)
         elif isYTUrl:
             self.showWarning(_YT_WARNING)
         else:
@@ -333,8 +332,8 @@ class Window(QtWidgets.QMainWindow):
         if msg == _SETTINGS_WARNING:
             self.hideAll()
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-            self.msgBox.setText("Configure your own settings and media to use as wallpaper\n"
-                                "Right-click the Jaaw! tray icon to open settings")
+            self.msgBox.setText("Configure your own settings and media to use as wallpaper"
+                                "\nRight-click the Jaaw! tray icon to open settings")
             self.msgBox.setWindowTitle("Jaaw! Warning")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
@@ -344,8 +343,9 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Image not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"
-                                        "Check the allowed image formats")
+            self.msgBox.setDetailedText(self.img + " couldn't be loaded"
+                                        "\nRight-click the Jaaw! tray icon to open settings and select a new one"
+                                        "\nCheck the allowed image formats")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
@@ -354,8 +354,9 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"
-                                        "Check the allowed image formats")
+            self.msgBox.setDetailedText(self.folder + " seems empty of images"
+                                        "\nRight-click the Jaaw! tray icon to open settings and select a new one"
+                                        "\nCheck the allowed image formats")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
@@ -364,8 +365,9 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Video not supported, moved or corrupted")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Right-click the Jaaw! tray icon to open settings and select a new one\n"
-                                        "Not all video formats can be played out-of-the-box depending on the OS you're using. Be sure you installed all required codecs for the selected format\n"
+            self.msgBox.setDetailedText(self.video + " failed to load\n"
+                                        "Right-click the Jaaw! tray icon to open settings and select a new one"
+                                        "\nNot all video formats can be played out-of-the-box depending on the OS you're using. Be sure you installed all required codecs for the selected format\n"
                                         + str(self.mediaPlayer.error()) + " " + self.mediaPlayer.errorString())
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
@@ -393,9 +395,9 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Can't play video! Enjoy default video instead")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("URL doesn't exist, it's malformed or video is not available to be watched embedded!\n"
-                                        "Be sure the URL exists and looks like 'https://youtube.com/watch?v=XXXXXXXXXXX'\n"
-                                        "It is also possible that the video can not be watched this way (embedded) according to YT rules")
+            self.msgBox.setDetailedText(self.ytUrl + " doesn't exist, it's malformed or video is not available to be watched embedded!"
+                                        "\nBe sure the URL exists and looks like 'https://youtube.com/watch?v=XXXXXXXXXXX'"
+                                        "\nIt is also possible that the video can not be watched this way (embedded) according to YT rules")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
@@ -404,7 +406,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("URL doesn't exist, it's malformed or it's unreachable")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText("Be sure the URL exists and it is reachable/responding now")
+            self.msgBox.setDetailedText(self.url + "\nBe sure the URL exists and it is reachable/responding now")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
             self.msgBox.exec_()
 
@@ -437,11 +439,12 @@ class Window(QtWidgets.QMainWindow):
         self.videoWidget.hide()
         self.webView.stop()
         self.webView.hide()
-        self.move(-1, -1)
         self.setFixedSize(1, 1)
+        self.move(-1, -1)
 
     @QtCore.pyqtSlot()
     def closeAll(self):
+        self.hideAll()
         # QtCore.QCoreApplication.instance().quit()
         QtWidgets.QApplication.quit()
 
