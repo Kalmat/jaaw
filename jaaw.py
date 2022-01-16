@@ -95,18 +95,18 @@ class Window(QtWidgets.QMainWindow):
         # Reduce CPU?
         #        Explorer.exe shell:appsFolder\Microsoft.ZuneVideo_8wekyb3d8bbwe!Microsoft.ZuneVideo
         #        https://stackoverflow.com/questions/57015932/how-to-attach-and-detach-an-external-app-with-pyqt5-or-dock-an-external-applicat
-        self.mediaPlayer = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
-        self.mediaPlayer.setMuted(True)
-        self.playlist = QtMultimedia.QMediaPlaylist()
-        self.playlist.setPlaybackMode(QtMultimedia.QMediaPlaylist.CurrentItemInLoop)
         self.videoWidget = QtMultimediaWidgets.QVideoWidget()
         self.videoWidget.hide()
         self.videoWidget.setGeometry(0, 0, self.xmax, self.ymax)
         self.videoWidget.setStyleSheet("background-color:black")
         # Use this to stretch video to screen (but distorting it)
         # self.videoWidget.setAspectRatioMode(QtCore.Qt.IgnoreAspectRatio)
+        self.mediaPlayer = QtMultimedia.QMediaPlayer(None, QtMultimedia.QMediaPlayer.VideoSurface)
         self.mediaPlayer.setVideoOutput(self.videoWidget)
+        self.mediaPlayer.setMuted(True)
         self.mediaPlayer.error.connect(self.handlePlayError)
+        self.playlist = QtMultimedia.QMediaPlaylist()
+        self.playlist.setPlaybackMode(QtMultimedia.QMediaPlaylist.CurrentItemInLoop)
 
         self.webView = QtWebEngineWidgets.QWebEngineView()
         self.webView.hide()
@@ -227,6 +227,8 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(_FOLDER_WARNING)
 
     def loadVideo(self, video):
+        # TODO: Test it on Linux and macOS
+        # Don't now how, but this fixes issues between video and transparent background (win10)
         self.hideAll()
         self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
@@ -317,7 +319,6 @@ class Window(QtWidgets.QMainWindow):
             self.move(0, 0)
             self.webView.load(QtCore.QUrl(url))
             self.webView.show()
-            bkgutils.sendBehind(_CAPTION)
         elif isYTUrl:
             self.showWarning(_YT_WARNING)
         else:
