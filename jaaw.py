@@ -90,7 +90,7 @@ class Window(QtWidgets.QMainWindow):
         self.bkg_label.hide()
         self.bkg_label.setGeometry(0, 0, self.xmax, self.ymax)
         self.bkg_label.setStyleSheet("background-color:black")
-        # self.bkg_label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        self.bkg_label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
         # Reduce CPU?
         #        Explorer.exe shell:appsFolder\Microsoft.ZuneVideo_8wekyb3d8bbwe!Microsoft.ZuneVideo
@@ -230,8 +230,10 @@ class Window(QtWidgets.QMainWindow):
         self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
         self.mediaPlayer.setPlaylist(self.playlist)
+        self.move(0, 0)
+        self.setFixedSize(self.xmax, self.ymax)
         self.showFullScreen()
-        # These two setGeometry() is an weird hack to avoid video stretching
+        # These two setGeometry() is a weird hack to avoid video stretching
         self.videoWidget.setGeometry(0, 0, self.xmax, self.ymax)
         self.videoWidget.show()
         self.mediaPlayer.play()
@@ -435,6 +437,8 @@ class Window(QtWidgets.QMainWindow):
         self.videoWidget.hide()
         self.webView.stop()
         self.webView.hide()
+        self.move(-1, -1)
+        self.setFixedSize(1, 1)
 
     @QtCore.pyqtSlot()
     def closeAll(self):
