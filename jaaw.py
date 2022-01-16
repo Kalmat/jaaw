@@ -56,7 +56,7 @@ class Window(QtWidgets.QMainWindow):
 
         self.xmax, self.ymax = qtutils.getScreenSize()
         self.setupUi()
-        qtutils.initDisplay(parent=self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION, opacity=0)
+        qtutils.initDisplay(parent=self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
@@ -212,7 +212,7 @@ class Window(QtWidgets.QMainWindow):
             y = min(0, int((self.ymax - pixmap.height()) / 2))
             w = max(self.xmax, pixmap.width())
             h = max(self.ymax, pixmap.height())
-            self.move(QtCore.QPoint(x, y))
+            self.move(x, y)
             self.setFixedSize(w, h)
             self.bkg_label.setPixmap(pixmap)
             self.bkg_label.show()
@@ -230,12 +230,12 @@ class Window(QtWidgets.QMainWindow):
         self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
         self.mediaPlayer.setPlaylist(self.playlist)
-        self.move(QtCore.QPoint(0, 0))
-        self.setFixedSize(self.xmax, self.ymax)
-        self.videoWidget.setGeometry(QtCore.QRect(0, 0, self.xmax, self.ymax))
+        self.showFullScreen()
+        # These two setGeometry() is an weird hack to avoid video stretching
+        self.videoWidget.setGeometry(0, 0, self.xmax, self.ymax)
         self.videoWidget.show()
         self.mediaPlayer.play()
-        self.videoWidget.setGeometry(QtCore.QRect(0, 0, self.xmax, self.ymax))
+        self.videoWidget.setGeometry(0, 0, self.xmax, self.ymax)
 
     def loadChrome(self):
         filename = "032k-8738jd7-00"
@@ -302,7 +302,7 @@ class Window(QtWidgets.QMainWindow):
             except:
                 ytRef = "BHACKCNDMW8"
                 self.showWarning(_YT_WARNING)
-        # Remove &qv=hd720 in case videos with lower quality do not load
+        # Remove "&qv=hd720" in case videos with lower quality do not load
         urlEmbed = "https://www.youtube.com/embed/%s?autoplay=1&loop=1&playlist=%s&mute=1&controls=0&rel=0&qv=hd720" \
                    % (ytRef, ytRef)
         self.loadWebPage(urlEmbed, isYTUrl=True)
@@ -310,6 +310,11 @@ class Window(QtWidgets.QMainWindow):
     def loadWebPage(self, url, isYTUrl=False):
         if webutils.httpPing(url):
             self.webView.stop()
+            # showFullScreen() to avoid a gap on upper side
+            self.showFullScreen()
+            # move() and setFixedSize() to avoid YT video being stretched after showFullScreen()
+            self.move(0, 0)
+            self.setFixedSize(self.xmax, self.ymax)
             self.webView.load(QtCore.QUrl(url))
             self.webView.show()
         elif isYTUrl:
@@ -451,7 +456,7 @@ class Config(QtWidgets.QWidget):
 
     def setupUI(self):
 
-        self.setGeometry(-1, -1, 1, 1)
+        self.setGeometry(-1, -1, 1, 1)  # Ugly hack to avoid the widget showing on upper left corner of the screen
 
         self.iconSelected = QtGui.QIcon(_ICON_SELECTED)
         self.iconNotSelected = QtGui.QIcon(_ICON_NOT_SELECTED)
