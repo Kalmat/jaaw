@@ -56,7 +56,7 @@ class Window(QtWidgets.QMainWindow):
 
         self.xmax, self.ymax = qtutils.getScreenSize()
         self.setupUi()
-        qtutils.initDisplay(self, setAsWallpaper=True, opacity=0, icon=_SYSTEM_ICON, caption=_CAPTION)
+        qtutils.initDisplay(self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
@@ -79,9 +79,10 @@ class Window(QtWidgets.QMainWindow):
 
     def setupUi(self):
 
+        self.setStyleSheet("background-color:black")
         self.setGeometry(0, 0, self.xmax, self.ymax)
 
-        self.widget = QtWidgets.QWidget(self)
+        self.widget = QtWidgets.QWidget()
         self.widget.setGeometry(0, 0, self.xmax, self.ymax)
         self.myLayout = QtWidgets.QHBoxLayout()
         self.myLayout.setContentsMargins(0, 0, 0, 0)
@@ -127,7 +128,7 @@ class Window(QtWidgets.QMainWindow):
 
     def loadSettings(self):
 
-        if os.path.isfile(_SETTINGS_FILE):
+        if not _IS_MACOS and os.path.isfile(_SETTINGS_FILE):
             file = _SETTINGS_FILE
         else:
             file = utils.resource_path(__file__, "resources/" + _SETTINGS_FILE)
@@ -203,11 +204,10 @@ class Window(QtWidgets.QMainWindow):
         else:
             self.showWarning(_SETTINGS_WARNING)
 
-    def loadImg(self, img, keepAspect=True, expand=True):
+    def loadImg(self, img, keepAspect=True, expand=True, fallback=True):
 
         pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
         if not pixmap.isNull():
-            self.bkg_label.clear()
             x = min(0, int((self.xmax - pixmap.width()) / 2))
             y = min(0, int((self.ymax - pixmap.height()) / 2))
             w = max(self.xmax, pixmap.width())
@@ -216,7 +216,7 @@ class Window(QtWidgets.QMainWindow):
             self.move(x, y)
             self.bkg_label.setPixmap(pixmap)
             self.bkg_label.show()
-        else:
+        elif fallback:
             self.showWarning(_IMG_WARNING)
 
     def loadNextImg(self):
@@ -227,10 +227,8 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(_FOLDER_WARNING)
 
     def loadVideo(self, video):
-        # TODO: Test it on Linux and macOS
         # Don't now how, but this fixes issues between video and transparent background (win10)
         self.hideAll()
-        self.playlist.clear()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
         self.mediaPlayer.setPlaylist(self.playlist)
         self.setFixedSize(self.xmax, self.ymax)
@@ -313,7 +311,6 @@ class Window(QtWidgets.QMainWindow):
 
     def loadWebPage(self, url, isYTUrl=False):
         if webutils.httpPing(url):
-            self.webView.stop()
             # First resize, then move or a gap may show up on the upper side of the screen
             self.setFixedSize(self.xmax, self.ymax)
             self.move(0, 0)
@@ -355,7 +352,7 @@ class Window(QtWidgets.QMainWindow):
             self.msgBox.setIcon(QtWidgets.QMessageBox.Warning)
             self.msgBox.setText("Folder contains no valid images to show")
             self.msgBox.setWindowTitle("Jaaw! Warning")
-            self.msgBox.setDetailedText(self.folder + " seems empty of images"
+            self.msgBox.setDetailedText(self.contentFolder + " seems empty of images"
                                         "\nRight-click the Jaaw! tray icon to open settings and select a new one"
                                         "\nCheck the allowed image formats")
             self.msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
@@ -441,7 +438,7 @@ class Window(QtWidgets.QMainWindow):
         self.webView.stop()
         self.webView.hide()
         self.setFixedSize(1, 1)
-        self.move(-1, -1)
+        self.move(0, 0)
 
     @QtCore.pyqtSlot()
     def closeAll(self):
@@ -464,7 +461,7 @@ class Config(QtWidgets.QWidget):
 
     def setupUI(self):
 
-        self.setGeometry(-1, -1, 1, 1)  # Ugly hack to avoid the widget showing on upper left corner of the screen
+        self.setGeometry(0, 0, 1, 1)  # Ugly hack to avoid the widget showing on upper left corner of the screen
 
         self.iconSelected = QtGui.QIcon(_ICON_SELECTED)
         self.iconNotSelected = QtGui.QIcon(_ICON_NOT_SELECTED)
@@ -527,7 +524,7 @@ class Config(QtWidgets.QWidget):
         self.videoDialog = QtWidgets.QFileDialog()
         self.videoDialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
         self.videoDialog.setWindowTitle("Select video")
-        self.videoDialog.setNameFilter("Video Files (*.flv *.ts *.mts *.avi *.wmv *.mp4)")
+        self.videoDialog.setNameFilter("Video Files (*.flv *.ts *.mts *.avi *.wmv *.mp4 *.mov")
 
         self.ytDialog = QtWidgets.QDialog()
         self.ytDialog.setWindowTitle("Enter YouTube URL")
