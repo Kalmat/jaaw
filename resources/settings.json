@@ -11,7 +11,7 @@
     ],
     "img_mode": "FIXED",
     "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
-    "folder": ".",
+    "folder": "/Volumes/Proyectos/PycharmProjects/jaaw/resourcesB/Serious",
     "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
     "Available_periods": {
         "30 sec": 30,
@@ -22,16 +22,16 @@
         "30 min": 1800,
         "1 hour": 3600
     },
-    "img_period": 120,
+    "img_period": 30,
     "Comment2": "Image to show when in IMAGE mode, and FIXED",
-    "img": "",
+    "img": "/Volumes/Proyectos/PycharmProjects/jaaw/resourcesB/Doom.jpg",
     "Comment3": "Video to play when in VIDEO mode",
     "Available_video_modes": [
         "LOCAL",
         "YOUTUBE"
     ],
     "video_mode": "YOUTUBE",
-    "video": "",
+    "video": "/Volumes/Proyectos/PycharmProjects/jaaw/resourcesB/animoto_360p.mp4",
     "yt_url": [
         "https://youtube.com/watch?v=BHACKCNDMW8",
         "https://youtube.com/watch?v=OhBo1A8atuA",
@@ -53,7 +53,7 @@
         "https://stackoverflow.com",
         "https://twitch.tv"
     ],
-    "url_index": 0,
-    "chrome_last": "",
-    "bing_last": ""
+    "url_index": 1,
+    "chrome_last": "20220116",
+    "bing_last": "20220116"
 }

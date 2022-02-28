@@ -56,7 +56,7 @@ class Window(QtWidgets.QMainWindow):
 
         self.xmax, self.ymax = qtutils.getScreenSize()
         self.setupUi()
-        qtutils.initDisplay(self, setAsWallpaper=True, icon=_SYSTEM_ICON, caption=_CAPTION)
+        qtutils.initDisplay(self, setAsWallpaper=True, caption=_CAPTION)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
@@ -74,7 +74,7 @@ class Window(QtWidgets.QMainWindow):
         self.menu.show()
 
         if _IS_WINDOWS or _IS_LINUX:
-            bkgutils.sendBehind(_CAPTION)
+            bkgutils.sendBehind(name=_CAPTION)
         self.start()
 
     def setupUi(self):
@@ -205,8 +205,7 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(_SETTINGS_WARNING)
 
     def loadImg(self, img, keepAspect=True, expand=True, fallback=True):
-
-        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=expand)
+        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=(expand and not _IS_LINUX))
         if not pixmap.isNull():
             x = min(0, int((self.xmax - pixmap.width()) / 2))
             y = min(0, int((self.ymax - pixmap.height()) / 2))
@@ -216,6 +215,8 @@ class Window(QtWidgets.QMainWindow):
             self.move(x, y)
             self.bkg_label.setPixmap(pixmap)
             self.bkg_label.show()
+            # QtCore.QTimer.singleShot(300, lambda: self.setProps(labelRect, pixmap))
+
         elif fallback:
             self.showWarning(_IMG_WARNING)
 
@@ -812,7 +813,7 @@ if __name__ == "__main__":
     win = Window()
     win.show()
     if _IS_MACOS:  # Not working if executed before win.show() or after app.exec_()
-        bkgutils.sendBehind(_CAPTION)
+        bkgutils.sendBehind(name=_CAPTION)
     try:
         app.exec_()
     except:
