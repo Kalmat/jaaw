@@ -10,7 +10,7 @@ import sys
 import time
 import traceback
 
-import bkgutils
+import pywinctl
 import qtutils
 import utils
 import webutils
@@ -26,6 +26,9 @@ _SETTINGS_FILE = "settings.json"
 _IMGMODE = "IMAGE"
 _IMGFIXED = "FIXED"
 _IMGCAROUSEL = "CAROUSEL"
+_ORIGINAL = "ORIGINAL"
+_FIT = "FIT"
+_STRETCH = "STRETCH"
 _VIDMODE = "VIDEO"
 _VIDLOCAL = "LOCAL"
 _VIDYT = "YOUTUBE"
@@ -56,7 +59,7 @@ class Window(QtWidgets.QMainWindow):
 
         self.xmax, self.ymax = qtutils.getScreenSize()
         self.setupUi()
-        qtutils.initDisplay(self, setAsWallpaper=True, caption=_CAPTION)
+        qtutils.initDisplay(self, caption=_CAPTION)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.loadNextImg)
@@ -74,7 +77,7 @@ class Window(QtWidgets.QMainWindow):
         self.menu.show()
 
         if _IS_WINDOWS or _IS_LINUX:
-            bkgutils.sendBehind(name=_CAPTION)
+            pywinctl.Window(self.winId()).sendBehind()
         self.start()
 
     def setupUi(self):
@@ -145,6 +148,7 @@ class Window(QtWidgets.QMainWindow):
         self.wallPaperMode = self.config["mode"]
         self.imgMode = self.config["img_mode"]
         self.img = self.config["img"]
+        self.imgSizeMode = self.config["img_size_mode"]
         self.contentFolder = self.config["folder"]
         self.imgPeriods = self.config["Available_periods"]
         self.imgPeriod = self.config["img_period"]
@@ -205,6 +209,15 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(_SETTINGS_WARNING)
 
     def loadImg(self, img, keepAspect=True, expand=True, fallback=True):
+        if self.imgSizeMode == _ORIGINAL:
+            keepAspect = True
+            expand = False
+        elif self.imgSizeMode == _FIT:
+            keepAspect = True
+            expand = True
+        elif self.imgSizeMode == _STRETCH:
+            keepAspect = False
+            expand = True
         pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=(expand and not _IS_LINUX))
         if not pixmap.isNull():
             x = min(0, int((self.xmax - pixmap.width()) / 2))
@@ -476,6 +489,12 @@ class Config(QtWidgets.QWidget):
         self.fimgAct = self.imgAct.addAction("Single Image", self.openSingleImage)
         self.cimgAct = self.imgAct.addMenu("Images carousel")
         self.imgfAct = self.cimgAct.addAction("Select folder", self.openFolder)
+        self.imgAct.addSeparator()
+        self.imgmAct = self.imgAct.addMenu("Image size mode")
+        self.imgmoAct = self.imgmAct.addAction("Original size", (lambda: self.changeMode(_ORIGINAL)))
+        self.imgmfAct = self.imgmAct.addAction("Fit screen (keep ratio)", (lambda: self.changeMode(_FIT)))
+        self.imgmsAct = self.imgmAct.addAction("Fit screen (stretch)", (lambda: self.changeMode(_STRETCH)))
+
         self.pimgAct = self.cimgAct.addMenu("Select carousel interval")
         imgPeriod = self.config["img_period"]
         periods = self.config["Available_periods"]
@@ -625,6 +644,9 @@ class Config(QtWidgets.QWidget):
         self.imgAct.setIcon(self.iconNotSelected)
         self.fimgAct.setIcon(self.iconNotSelected)
         self.cimgAct.setIcon(self.iconNotSelected)
+        self.imgmoAct.setIcon(self.iconNotSelected)
+        self.imgmfAct.setIcon(self.iconNotSelected)
+        self.imgmsAct.setIcon(self.iconNotSelected)
         self.videoAct.setIcon(self.iconNotSelected)
         self.lvideoAct.setIcon(self.iconNotSelected)
         self.yvideoAct.setIcon(self.iconNotSelected)
@@ -632,6 +654,13 @@ class Config(QtWidgets.QWidget):
         self.chromeAct.setIcon(self.iconNotSelected)
         self.bingAct.setIcon(self.iconNotSelected)
         self.uwebAct.setIcon(self.iconNotSelected)
+
+        if self.config["img_size_mode"] == _ORIGINAL:
+            self.imgmoAct.setIcon(self.iconSelected)
+        elif self.config["img_size_mode"] == _FIT:
+            self.imgmfAct.setIcon(self.iconSelected)
+        elif self.config["img_size_mode"] == _STRETCH:
+            self.imgmsAct.setIcon(self.iconSelected)
 
         if self.config["mode"] == _IMGMODE:
             self.imgAct.setIcon(self.iconSelected)
@@ -689,6 +718,12 @@ class Config(QtWidgets.QWidget):
             self.config["folder"] = fileName
             self.config["mode"] = _IMGMODE
             self.config["img_mode"] = _IMGCAROUSEL
+            self.updateCheck()
+            self.saveSettings()
+
+    def changeMode(self, mode):
+        if self.config["img_size_mode"] != mode:
+            self.config["img_size_mode"] = mode
             self.updateCheck()
             self.saveSettings()
 
@@ -812,8 +847,8 @@ if __name__ == "__main__":
         sys.excepthook = exception_hook
     win = Window()
     win.show()
-    if _IS_MACOS:  # Not working if executed before win.show() or after app.exec_()
-        bkgutils.sendBehind(name=_CAPTION)
+    if _IS_MACOS:  # Not working if executed before win.show()
+        pywinctl.MacOSNSWindow(app, win.winId()).sendBehind()
     try:
         app.exec_()
     except:
