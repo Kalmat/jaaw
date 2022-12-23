@@ -57,7 +57,7 @@ class Window(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         QtWidgets.QMainWindow.__init__(self, *args, **kwargs)
 
-        self.xmax, self.ymax = qtutils.getScreenSize()
+        _, _, self.xmax, self.ymax = pywinctl.getWorkArea()
         self.setupUi()
         qtutils.initDisplay(self, caption=_CAPTION)
 
@@ -76,9 +76,8 @@ class Window(QtWidgets.QMainWindow):
         self.menu.showHelp.connect(self.showHelp)
         self.menu.show()
 
-        if _IS_WINDOWS or _IS_LINUX:
-            pywinctl.Window(self.winId()).sendBehind()
         self.start()
+        QtCore.QTimer.singleShot(1000, self.sendBehind)
 
     def setupUi(self):
 
@@ -208,6 +207,9 @@ class Window(QtWidgets.QMainWindow):
         else:
             self.showWarning(_SETTINGS_WARNING)
 
+    def sendBehind(self):
+        pywinctl.Window(self.winId()).sendBehind()
+
     def loadImg(self, img, keepAspect=True, expand=True, fallback=True):
         if self.imgSizeMode == _ORIGINAL:
             keepAspect = True
@@ -218,7 +220,8 @@ class Window(QtWidgets.QMainWindow):
         elif self.imgSizeMode == _STRETCH:
             keepAspect = False
             expand = True
-        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect, expand=(expand and not _IS_LINUX))
+        pixmap = qtutils.resizeImageWithQT(img, self.xmax, self.ymax, keepAspectRatio=keepAspect,
+                                           expand=(expand and not _IS_LINUX))
         if not pixmap.isNull():
             x = min(0, int((self.xmax - pixmap.width()) / 2))
             y = min(0, int((self.ymax - pixmap.height()) / 2))
@@ -241,7 +244,15 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(_FOLDER_WARNING)
 
     def loadVideo(self, video):
-        # Don't now how, but this fixes issues between video and transparent background (win10)
+        flag = QtCore.Qt.KeepAspectRatio
+        if self.imgSizeMode == _ORIGINAL:
+            flag = QtCore.Qt.KeepAspectRatio
+        elif self.imgSizeMode == _FIT:
+            flag = QtCore.Qt.KeepAspectRatioByExpanding
+        elif self.imgSizeMode == _STRETCH:
+            flag = QtCore.Qt.IgnoreAspectRatio
+        self.videoWidget.setAspectRatioMode(flag)
+        # Don't know how, but this fixes issues between video and transparent background (win10)
         self.hideAll()
         self.playlist.addMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(video)))
         self.mediaPlayer.setPlaylist(self.playlist)
@@ -310,6 +321,7 @@ class Window(QtWidgets.QMainWindow):
             self.showWarning(_BING_WARNING)
 
     def loadYTVideo(self, url):
+        self.hideAll()
         try:
             ytRef = url.split("watch?v=")[1].split("&")[0]
         except:
@@ -326,8 +338,15 @@ class Window(QtWidgets.QMainWindow):
     def loadWebPage(self, url, isYTUrl=False):
         if webutils.httpPing(url):
             # First resize, then move or a gap may show up on the upper side of the screen
-            self.setFixedSize(self.xmax, self.ymax)
-            self.move(0, 0)
+            if self.imgSizeMode == _ORIGINAL:
+                self.setFixedSize(self.xmax, self.ymax)
+                self.move(0, 0)
+            else:
+                ratio = (self.xmax / (1920 * (self.ymax / 1080)))
+                width = max(self.xmax, int(self.xmax * ratio))
+                height = max(self.ymax, int(self.ymax * ratio))
+                self.setFixedSize(width, height)
+                self.move(min(0, -int((width - self.xmax) / 2)), min(0, -int((height - self.ymax) / 2)))
             self.webView.load(QtCore.QUrl(url))
             self.webView.show()
         elif isYTUrl:
@@ -489,11 +508,6 @@ class Config(QtWidgets.QWidget):
         self.fimgAct = self.imgAct.addAction("Single Image", self.openSingleImage)
         self.cimgAct = self.imgAct.addMenu("Images carousel")
         self.imgfAct = self.cimgAct.addAction("Select folder", self.openFolder)
-        self.imgAct.addSeparator()
-        self.imgmAct = self.imgAct.addMenu("Image size mode")
-        self.imgmoAct = self.imgmAct.addAction("Original size", (lambda: self.changeMode(_ORIGINAL)))
-        self.imgmfAct = self.imgmAct.addAction("Fit screen (keep ratio)", (lambda: self.changeMode(_FIT)))
-        self.imgmsAct = self.imgmAct.addAction("Fit screen (stretch)", (lambda: self.changeMode(_STRETCH)))
 
         self.pimgAct = self.cimgAct.addMenu("Select carousel interval")
         imgPeriod = self.config["img_period"]
@@ -522,6 +536,10 @@ class Config(QtWidgets.QWidget):
             self.addUrlOpts(self.uwebAct, item, selected=(url == item))
 
         self.contextMenu.addSeparator()
+        self.imgmAct = self.contextMenu.addMenu("Image size mode")
+        self.imgmoAct = self.imgmAct.addAction("Original size", (lambda: self.changeMode(_ORIGINAL)))
+        self.imgmfAct = self.imgmAct.addAction("Fit screen (keep ratio)", (lambda: self.changeMode(_FIT)))
+        self.imgmsAct = self.imgmAct.addAction("Fit screen (stretch)", (lambda: self.changeMode(_STRETCH)))
         self.helpAct = self.contextMenu.addAction("Help", self.sendShowHelp)
         self.quitAct = self.contextMenu.addAction("Quit", self.sendCloseAll)
 
@@ -847,8 +865,6 @@ if __name__ == "__main__":
         sys.excepthook = exception_hook
     win = Window()
     win.show()
-    if _IS_MACOS:  # Not working if executed before win.show()
-        pywinctl.MacOSNSWindow(app, win.winId()).sendBehind()
     try:
         app.exec_()
     except:
