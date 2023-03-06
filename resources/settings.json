@@ -10,6 +10,12 @@
         "CAROUSEL"
     ],
     "img_mode": "FIXED",
+        "Available_size_modes": [
+        "FIT",
+        "ORIGINAL",
+        "STRETCH"
+    ],
+    "img_size_mode": "STRETCH",
     "Comment": "Folder which contains the images to be shown when in IMAGE mode, and CAROUSEL",
     "folder": "/Volumes/Proyectos/PycharmProjects/jaaw/resourcesB/Serious",
     "Comment1": "Time to show next image when in CAROUSEL mode, in seconds",
